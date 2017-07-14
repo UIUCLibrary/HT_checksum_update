@@ -1,8 +1,8 @@
 import logging
 import os
 
-from update_yml.package import get_dirs
-from update_yml.utils import InvalidChecksum, calculate_md5
+from hathi_checksum.package import get_dirs
+from hathi_checksum.utils import InvalidChecksum, calculate_md5
 
 
 def parse_checksum(line):

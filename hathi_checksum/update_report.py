@@ -1,8 +1,8 @@
 import logging
 import os
 
-from update_yml import checksum_report
-from update_yml.utils import calculate_md5
+from hathi_checksum import checksum_report
+from hathi_checksum.utils import calculate_md5
 
 
 def update_hash_value(checksum_file, target, new_hash):
