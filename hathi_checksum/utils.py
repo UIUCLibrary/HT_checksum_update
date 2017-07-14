@@ -1,6 +1,6 @@
 import cmd
 import hashlib
-
+import typing
 
 class CallAbort(Exception):
     pass
@@ -15,7 +15,8 @@ class InvalidChecksum(ValidationError):
 
 
 class YesNo(cmd.Cmd):
-    answer = None
+
+    answer: bool  # type: ignore
 
     def __init__(self, question):
         YesNo.prompt = "{} (yes/no/quit): ".format(question)
@@ -23,7 +24,7 @@ class YesNo(cmd.Cmd):
         #     YesNo.intro = intro
         super().__init__()
 
-    def do_yes(self, args):
+    def do_yes(self, args)->bool:
         self._yes()
         return True
 
