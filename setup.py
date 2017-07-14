@@ -1,21 +1,21 @@
 from setuptools import setup
-import update_yml
+import hathi_checksum
 
 setup(
-    name=update_yml.__title__,
-    version=update_yml.__version__,
-    packages=['update_yml'],
+    name=hathi_checksum.__title__,
+    version=hathi_checksum.__version__,
+    packages=['hathi_checksum'],
     test_suite="tests",
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
-    url=update_yml.__url__,
+    url=hathi_checksum.__url__,
     license='',
-    author=update_yml.__author__,
-    author_email=update_yml.__author_email__,
+    author=hathi_checksum.__author__,
+    author_email=hathi_checksum.__author_email__,
     entry_points={
         "console_scripts": [
-            "udhtchecksum = update_yml.cli:main"
+            "udhtchecksum = hathi_checksum.__main__:main"
         ]
     },
-    description=update_yml.__description__
+    description=hathi_checksum.__description__
 )
