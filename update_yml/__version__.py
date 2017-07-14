@@ -1,0 +1,7 @@
+__title__ = 'HathiChecksumUpdater'
+__version__ = '0.0.1'
+__url__ = 'https://github.com/UIUCLibrary/HathiValidate'
+__author__ = 'University of Illinois at Urbana Champaign'
+__author_email__ = 'hborcher@illinois.edu'
+__description__ = 'Update checksum file if files are out of data'
+FULL_TITLE = "DS HathiTrust Checksum Updater"
