@@ -1,2 +1,7 @@
 pytest
 tox
+mypy
+cx_Freeze
+six
+appdirs
+packaging
