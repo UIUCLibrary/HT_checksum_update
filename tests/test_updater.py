@@ -1,7 +1,7 @@
 import pytest
 
-import update_yml.update_report
-from update_yml import cli
+import hathi_checksum.update_report
+
 CHECKSUM_FILE_TEXT = """dd2cded075d7267ff660a947fd46ac0f *00000001.jp2
 78036918331dc34fc373bd6f70dbdb91 *00000001.txt
 7a101e5b45267479397c26c7bb05e194 *00000002.jp2
@@ -127,7 +127,7 @@ def md5_file(tmpdir_factory):
 
 
 def test_update_checksum(md5_file):
-    update_yml.update_report.update_hash_value(md5_file, "meta.yml", new_hash="00000000000000000000000000000000")
+    hathi_checksum.update_report.update_hash_value(md5_file, "meta.yml", new_hash="00000000000000000000000000000000")
     lines = []
     with open(md5_file) as f:
         for l in f:
