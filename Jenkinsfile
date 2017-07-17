@@ -123,23 +123,23 @@ pipeline {
                                 unstash "msi"
                                 // validate_msi.py
 
-                                bat """
-                          ${env.PYTHON3} -m venv .env
-                          call .env/Scripts/activate.bat
-                          pip install --upgrade pip
-                          pip install setuptools --upgrade
-                          pip install -r requirements.txt
-                          python setup.py install
+                                bat """${env.PYTHON3} -m venv .env
+                                        call .env/Scripts/activate.bat
+                                        pip install --upgrade pip
+                                        pip install setuptools --upgrade
+                                        pip install -r requirements.txt
+                                        python setup.py install
 
-                          echo Validating msi file(s)
-                          FOR /f "delims=" %%A IN ('dir /b /s *.msi') DO (
-                            python validate_msi.py ^"%%A^" frozen.yml
-                            if not %errorlevel%==0 (
-                              echo errorlevel=%errorlevel%
-                              exit /b %errorlevel%
-                              )
-                            )
-                          """
+                                        echo Validating msi file(s)
+                                        FOR /f "delims=" %%A IN ('dir /b /s *.msi') DO (
+                                          python validate_msi.py ^"%%A^" frozen.yml
+                                          echo errorlevel=%errorlevel%
+                                          if not %errorlevel%==0 (
+                                            echo errorlevel=%errorlevel%
+                                            exit /b %errorlevel%
+                                            )
+                                          )
+                                        """
                                 archiveArtifacts artifacts: "*.msi", fingerprint: true
                             }
                         },
