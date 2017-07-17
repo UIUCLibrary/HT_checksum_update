@@ -90,12 +90,17 @@ pipeline {
             steps {
                 parallel(
                         "Windows Wheel": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat "${env.PYTHON3} setup.py bdist_wheel --universal"
-                                archiveArtifacts artifacts: "dist/**", fingerprint: true
-                            }
+                          node(label: "Windows") {
+                              deleteDir()
+                              unstash "Source"
+                              bat """${env.PYTHON3} -m venv .env
+                                call .env/Scripts/activate.bat
+                                pip install --upgrade pip setuptools
+                                pip install -r requirements.txt
+                                pip setup.py bdist_wheel --universal
+                              """
+                              archiveArtifacts artifacts: "dist/**", fingerprint: true
+                          }
                         },
                         "Windows CX_Freeze MSI": {
                             node(label: "Windows") {
