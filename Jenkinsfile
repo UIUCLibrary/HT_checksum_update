@@ -56,33 +56,33 @@ pipeline {
                 )
             }
         }
-        // stage("Documentation") {
-        //     agent any
-        //     when {
-        //         expression { params.BUILD_DOCS == true }
-        //     }
-        //     steps {
-        //         deleteDir()
-        //         unstash "Source"
-        //         withEnv(['PYTHON=${env.PYTHON3}']) {
-        //             sh """
-        //           ${env.PYTHON3} -m venv .env
-        //           . .env/bin/activate
-        //           pip install --upgrade pip
-        //           pip install -r requirements.txt
-        //           cd docs && make html
-        //
-        //           """
-        //             stash includes: '**', name: "Documentation source", useDefaultExcludes: false
-        //         }
-        //     }
-        //     post {
-        //         success {
-        //             sh 'tar -czvf sphinx_html_docs.tar.gz -C docs/build/html .'
-        //             archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-        //         }
-        //     }
-        // }
+        stage("Documentation") {
+            agent any
+            when {
+                expression { params.BUILD_DOCS == true }
+            }
+            steps {
+                deleteDir()
+                unstash "Source"
+                withEnv(['PYTHON=${env.PYTHON3}']) {
+                    sh """
+                  ${env.PYTHON3} -m venv .env
+                  . .env/bin/activate
+                  pip install --upgrade pip
+                  pip install -r requirements.txt
+                  cd docs && make html
+
+                  """
+                    stash includes: '**', name: "Documentation source", useDefaultExcludes: false
+                }
+            }
+            post {
+                success {
+                    sh 'tar -czvf sphinx_html_docs.tar.gz -C docs/build/html .'
+                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
+                }
+            }
+        }
         stage("Packaging") {
             when {
                 expression { params.PACKAGE == true }
