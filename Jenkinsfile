@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    enviroment {
+    environment {
       mypy_args = "--junit-xml=reports/mypy.xml"
       pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
     }
