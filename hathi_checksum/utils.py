@@ -16,7 +16,7 @@ class InvalidChecksum(ValidationError):
 
 class YesNo(cmd.Cmd):
 
-    answer: bool  # type: ignore
+    answer = None  # type: ignore
 
     def __init__(self, question):
         YesNo.prompt = "{} (yes/no/quit): ".format(question)
