@@ -97,7 +97,7 @@ pipeline {
                                 call .env/Scripts/activate.bat
                                 pip install --upgrade pip setuptools
                                 pip install -r requirements.txt
-                                pip setup.py bdist_wheel --universal
+                                python setup.py bdist_wheel --universal
                               """
                               archiveArtifacts artifacts: "dist/**", fingerprint: true
                           }
