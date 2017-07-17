@@ -5,3 +5,4 @@ cx_Freeze
 six
 appdirs
 packaging
+wheel
