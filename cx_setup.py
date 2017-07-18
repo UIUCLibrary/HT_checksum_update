@@ -92,7 +92,7 @@ cx_Freeze.setup(
     options={
         "build_exe": build_exe_options,
         "bdist_msi": {
-            "upgrade-code": "{F212C57B-E55D-40F7-88DC-A49CB97EFA50}",
+            "upgrade_code": "{F212C57B-E55D-40F7-88DC-A49CB97EFA50}",
             "data": {
                 "Shortcut": shortcut_table,
                 "Directory": directory_table
