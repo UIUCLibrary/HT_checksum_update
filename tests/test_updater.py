@@ -121,9 +121,9 @@ ecaa88f7fa0bf610a5a26cf545dcd3aa *00000056.txt
 @pytest.fixture(scope="session")
 def md5_file(tmpdir_factory):
     fn = tmpdir_factory.mktemp("temp_package").join("checksum.md5")
-    with open(fn, "w") as f:
+    with open(str(fn), "w") as f:
         f.write(CHECKSUM_FILE_TEXT)
-    return fn
+    return str(fn)
 
 
 def test_update_checksum(md5_file):
