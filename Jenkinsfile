@@ -107,9 +107,10 @@ pipeline {
                                 bat """${env.PYTHON3} -m venv .env
                                        call .env/Scripts/activate.bat
                                        pip install -r requirements.txt
-                                       python cx_setup.py bdist_msi --add-to-path=true
+                                       python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
+                                       call .env/Scripts/deactivate.bat
                                     """
-
+                                bat "build\\msi\\udhtchecksum.exe --pytest"
                                 dir("dist") {
                                     stash includes: "*.msi", name: "msi"
                                 }
