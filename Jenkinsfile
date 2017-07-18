@@ -64,11 +64,12 @@ pipeline {
                 parallel(
                         "Documentation": {
                             sh "${env.TOX} -e docs"
+                            stash includes: '.tox/dist/html/**', name: "Documentation source", useDefaultExcludes: false
                         },
                         "MyPy": {
                             sh "${env.TOX} -e mypy"
                             junit 'mypy.xml'
-                            stash includes: '.tox/dist/html/**', name: "Documentation source", useDefaultExcludes: false
+
                         }
                 )
             }
