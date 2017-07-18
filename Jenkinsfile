@@ -201,6 +201,7 @@ pipeline {
                       echo "resused doc"
                   } catch (error) {
                       echo "Building documentation"
+                      unstash "Source"
                       withEnv(["sphinx_args=-W -b html -d {envtmpdir}/doctrees source  {distdir}/html"]) {
                         sh "${env.TOX} -e docs"
 
