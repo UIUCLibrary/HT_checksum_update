@@ -67,7 +67,7 @@ pipeline {
                             deleteDir()
                             unstash "Source"
                             sh "${env.TOX} -e docs"
-                            stash includes: '.tox/dist/html/**', name: "Documentation source", useDefaultExcludes: false
+                            stash includes: '.tox/dist/html/**', name: "HTML Documentation", useDefaultExcludes: false
                           }
 
                         },
@@ -85,7 +85,7 @@ pipeline {
             post {
               success {
                 deleteDir()
-                unstash "Documentation source"
+                unstash "HTML Documentation"
                 sh 'tar -czvf sphinx_html_docs.tar.gz -C .tox/dist/html .'
                 archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
               }
@@ -217,7 +217,7 @@ pipeline {
                 deleteDir()
                 script {
                     echo "Updating online documentation"
-                    unstash "Documentation source"
+                    unstash "HTML Documentation"
                     try {
                       sh "ls -la"
                         // sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" docs/build/html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
