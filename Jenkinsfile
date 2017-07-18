@@ -122,7 +122,7 @@ pipeline {
                                 git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
                                 unstash "msi"
                                 // validate_msi.py
-                                bat "call validate.bat"
+                                bat "call validate.bat -i"
                                 // bat """${env.PYTHON3} -m venv .env
                                 //         call .env/Scripts/activate.bat
                                 //         pip install --upgrade pip
