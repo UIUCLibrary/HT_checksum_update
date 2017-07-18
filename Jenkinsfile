@@ -197,6 +197,7 @@ pipeline {
                 script {
                   try {
                       unstash "HTML Documentation"
+                      echo "resused doc"
                   } catch (error) {
                       echo "Building documentation"
                       withEnv(["sphinx_args=-W -b html -d {envtmpdir}/doctrees source  {distdir}/html"]) {
