@@ -21,17 +21,19 @@ def extracts_checksums(report):
             yield md5, filename
 
 
-def find_failing_checksums(path, report):
-    """
-        validate that the checksums in the *.fil file match
+def find_failing_checksums(report, path=None):
+    """Validate that the checksums in the checksum.md5 file matches the files in the path
 
     Args:
-        path:
-        report:
+        report: checksum.md5
+        path: root directory to the files referenced in the report. Defaults to the same path as the report.
 
-    Returns:
+    Yields:
+        File paths that don't match checksum in the report.
 
     """
+    if path is None:
+        path = os.path.dirname(report)
 
     logger = logging.getLogger(__name__)
     # report_builder = result.SummaryDirector(source=path)
@@ -49,7 +51,7 @@ def find_checksum_mismatch(path):
     new_checksum_report = os.path.join(path, "checksum.md5")
     logger.info("Validating checksums in {}".format(new_checksum_report))
 
-    for failing_checksum in find_failing_checksums(path=path, report=new_checksum_report):
+    for failing_checksum in find_failing_checksums(report=new_checksum_report, path=path):
         yield new_checksum_report, failing_checksum
 
 
