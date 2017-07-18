@@ -71,6 +71,12 @@ pipeline {
                         }
                 )
             }
+            post {
+              success {
+                sh 'tar -czvf sphinx_html_docs.tar.gz -C .tox/dist/html .'
+                echo "success"
+              }
+            }
         }
         stage("Documentation") {
             agent any
