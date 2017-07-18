@@ -207,6 +207,7 @@ pipeline {
 
                       }
                       dir('.tox/dist/') {
+                        sh "ls -la"
                         stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                       }
                       deleteDir()
