@@ -67,8 +67,8 @@ pipeline {
                             deleteDir()
                             unstash "Source"
                             sh "${env.TOX} -e docs"
-                            dir('.tox/dist/html/') {
-                              stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
+                            dir('.tox/dist/') {
+                              stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                             }
                           }
 
@@ -88,7 +88,7 @@ pipeline {
               success {
                 deleteDir()
                 unstash "HTML Documentation"
-                sh 'tar -czvf sphinx_html_docs.tar.gz .'
+                sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
                 archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
               }
             }
