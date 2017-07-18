@@ -1,13 +1,13 @@
 pipeline {
     agent any
     environment {
-      mypy_args = "--junit-xml=reports/mypy.xml"
-      pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
+        mypy_args = "--junit-xml=reports/mypy.xml"
+        pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
     }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
-//      booleanParam(name: "STATIC_ANALYSIS", defaultValue: true, description: "Run static analysis tests")
+        booleanParam(name: "STATIC_ANALYSIS", defaultValue: true, description: "Run static analysis tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
         booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
         booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
@@ -65,14 +65,12 @@ pipeline {
                 deleteDir()
                 unstash "Source"
                 withEnv(['PYTHON=${env.PYTHON3}']) {
-                    sh """
-                  ${env.PYTHON3} -m venv .env
-                  . .env/bin/activate
-                  pip install --upgrade pip
-                  pip install -r requirements.txt
-                  cd docs && make html
-
-                  """
+                    sh """${env.PYTHON3} -m venv .env
+                          . .env/bin/activate
+                          pip install --upgrade pip
+                          pip install -r requirements.txt
+                          cd docs && make html
+                        """
                     stash includes: '**', name: "Documentation source", useDefaultExcludes: false
                 }
             }
@@ -90,27 +88,27 @@ pipeline {
             steps {
                 parallel(
                         "Windows Wheel": {
-                          node(label: "Windows") {
-                              deleteDir()
-                              unstash "Source"
-                              bat """${env.PYTHON3} -m venv .env
-                                call .env/Scripts/activate.bat
-                                pip install --upgrade pip setuptools
-                                pip install -r requirements.txt
-                                python setup.py bdist_wheel --universal
-                              """
-                              archiveArtifacts artifacts: "dist/**", fingerprint: true
-                          }
+                            node(label: "Windows") {
+                                deleteDir()
+                                unstash "Source"
+                                bat """${env.PYTHON3} -m venv .env
+                                        call .env/Scripts/activate.bat
+                                        pip install --upgrade pip setuptools
+                                        pip install -r requirements.txt
+                                        python setup.py bdist_wheel --universal
+                                    """
+                                archiveArtifacts artifacts: "dist/**", fingerprint: true
+                            }
                         },
                         "Windows CX_Freeze MSI": {
                             node(label: "Windows") {
                                 deleteDir()
                                 unstash "Source"
-                                bat """ ${env.PYTHON3} -m venv .env
-                          call .env/Scripts/activate.bat
-                          pip install -r requirements.txt
-                          python cx_setup.py bdist_msi --add-to-path=true
-                          """
+                                bat """${env.PYTHON3} -m venv .env
+                                       call .env/Scripts/activate.bat
+                                       pip install -r requirements.txt
+                                       python cx_setup.py bdist_msi --add-to-path=true
+                                    """
 
                                 dir("dist") {
                                     stash includes: "*.msi", name: "msi"
@@ -121,25 +119,7 @@ pipeline {
                                 deleteDir()
                                 git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
                                 unstash "msi"
-                                // validate_msi.py
                                 bat "call validate.bat -i"
-                                // bat """${env.PYTHON3} -m venv .env
-                                //         call .env/Scripts/activate.bat
-                                //         pip install --upgrade pip
-                                //         pip install setuptools --upgrade
-                                //         pip install -r requirements.txt
-                                //         python setup.py install
-                                //
-                                //         echo Validating msi file(s)
-                                //         FOR /f "delims=" %%A IN ('dir /b /s *.msi') DO (
-                                //           python validate_msi.py ^"%%A^" frozen.yml
-                                //           echo errorlevel=%errorlevel%
-                                //           if not %errorlevel%==0 (
-                                //             echo errorlevel=%errorlevel%
-                                //             exit /b %errorlevel%
-                                //             )
-                                //           )
-                                //         """
                                 archiveArtifacts artifacts: "*.msi", fingerprint: true
                             }
                         },
@@ -180,12 +160,12 @@ pipeline {
                     git url: 'https://github.com/UIUCLibrary/sccm_deploy_message_generator.git'
                     unstash "Deployment"
                     sh """${env.PYTHON3} -m venv .env
-                      . .env/bin/activate
-                      pip install --upgrade pip
-                      pip install setuptools --upgrade
-                      python setup.py install
-                      deploymessage deployment.yml --save=deployment_request.txt
-                  """
+                          . .env/bin/activate
+                          pip install --upgrade pip
+                          pip install setuptools --upgrade
+                          python setup.py install
+                          deploymessage deployment.yml --save=deployment_request.txt
+                      """
                     archiveArtifacts artifacts: "deployment_request.txt"
                     echo(readFile('deployment_request.txt'))
                 }
