@@ -10,7 +10,7 @@ pipeline {
         booleanParam(name: "ADDITONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
         booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
-        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
+        // booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_checksum_updater", description: 'The directory that the docs should be saved under')
     }
@@ -212,7 +212,7 @@ pipeline {
         stage("Update online documentation") {
             agent any
             when {
-                expression { params.UPDATE_DOCS == true && params.BUILD_DOCS == true }
+                expression { params.ADDITONAL_TESTS == true && params.BUILD_DOCS == true }
             }
 
             steps {
@@ -221,8 +221,7 @@ pipeline {
                     echo "Updating online documentation"
                     unstash "HTML Documentation"
                     try {
-                      sh "ls -la"
-                        // sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" docs/build/html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
+                        sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
                     } catch (error) {
                         echo "Error with uploading docs"
                         throw error
