@@ -202,7 +202,7 @@ pipeline {
                   } catch (error) {
                       echo "Building documentation"
                       unstash "Source"
-                      withEnv(["sphinx_args=-W -b html -d {envtmpdir}/doctrees source  {distdir}/html"]) {
+                      withEnv(['sphinx_args=-W -b html -d {envtmpdir}/doctrees source {distdir}/html']) {
                         sh "${env.TOX} -e docs"
 
                       }
