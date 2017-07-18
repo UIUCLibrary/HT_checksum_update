@@ -63,10 +63,10 @@ pipeline {
             steps {
                 parallel(
                         "Documentation": {
-                            echo "checking Documentation"
+                            sh "${env.TOX} -e docs"
                         },
                         "MyPy": {
-                            echo "running mypy"
+                            sh "${env.TOX} -e mypy"
                         }
                 )
             }
