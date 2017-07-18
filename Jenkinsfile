@@ -6,9 +6,9 @@ pipeline {
     }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
-        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
-        booleanParam(name: "STATIC_ANALYSIS", defaultValue: true, description: "Run static analysis tests")
-        booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
+        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
+        booleanParam(name: "ADDITONAL_TESTS", defaultValue: true, description: "Run additional tests")
+        booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
         booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
         booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
@@ -52,6 +52,21 @@ pipeline {
                                 }
                                 junit 'reports/junit-*.xml'
                             }
+                        }
+                )
+            }
+        }
+        stage("Additional tests") {
+            when {
+                expression { params.ADDITONAL_TESTS == true }
+            }
+            steps {
+                parallel(
+                        "Documentation": {
+                            echo "checking Documentation"
+                        },
+                        "MyPy": {
+                            echo "running mypy"
                         }
                 )
             }
