@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        mypy_args = "--junit-xml=reports/mypy.xml"
+        mypy_args = "--junit-xml=mypy.xml"
         pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
     }
     parameters {
@@ -67,6 +67,7 @@ pipeline {
                         },
                         "MyPy": {
                             sh "${env.TOX} -e mypy"
+                            junit 'mypy.xml'
                         }
                 )
             }
