@@ -67,7 +67,9 @@ pipeline {
                             deleteDir()
                             unstash "Source"
                             sh "${env.TOX} -e docs"
-                            stash includes: '.tox/dist/html/**', name: "HTML Documentation", useDefaultExcludes: false
+                            dir('.tox/dist/html/') {
+                              stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
+                            }
                           }
 
                         },
