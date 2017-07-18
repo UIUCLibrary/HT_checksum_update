@@ -26,8 +26,8 @@ pipeline {
                 script{
                   try {
                       unstash "asdfasdf"
-                  } catch (E) {
-                    echo E
+                  } catch (error) {
+                    echo "errooooooor"
                   }
 
 
