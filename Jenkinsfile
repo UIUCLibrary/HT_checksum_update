@@ -88,7 +88,7 @@ pipeline {
               success {
                 deleteDir()
                 unstash "HTML Documentation"
-                sh 'tar -czvf sphinx_html_docs.tar.gz -C .tox/dist/html .'
+                sh 'tar -czvf sphinx_html_docs.tar.gz .'
                 archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
               }
             }
