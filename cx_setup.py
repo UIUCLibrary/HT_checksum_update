@@ -27,8 +27,7 @@ def get_tests():
 
 
 INCLUDE_FILES = [
-    # "documentation.url",
-    #     TODO: BUILD DOCUMENTATION
+    "documentation.url",
 ] + get_tests()
 
 directory_table = [
@@ -92,12 +91,12 @@ cx_Freeze.setup(
     author_email=hathi_checksum.__author_email__,
     options={
         "build_exe": build_exe_options,
-        # "bdist_msi": {
-        #     "data": {
-        #         "Shortcut": shortcut_table,
-        #         "Directory": directory_table
-        #     }
-        # }
+        "bdist_msi": {
+            "data": {
+                "Shortcut": shortcut_table,
+                "Directory": directory_table
+            }
+        }
     },
     executables=[cx_Freeze.Executable("hathi_checksum/__main__.py",
                             targetName=target_name, base="Console")],
