@@ -23,15 +23,7 @@ pipeline {
                 checkout scm
                 stash includes: '**', name: "Source", useDefaultExcludes: false
                 stash includes: 'deployment.yml', name: "Deployment"
-                script{
-                  try {
-                      unstash "asdfasdf"
-                  } catch (error) {
-                    echo "Alternative method"
-                  }
 
-
-                }
 
 
             }
@@ -203,14 +195,29 @@ pipeline {
             steps {
                 deleteDir()
                 script {
-                    echo "Updating online documentation"
-                    unstash "HTML Documentation"
-                    try {
-                        sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
-                    } catch (error) {
-                        echo "Error with uploading docs"
-                        throw error
-                    }
+                  try {
+                      unstash "HTML Documentation"
+                  } catch (error) {
+                      echo "Building documentation"
+                      withEnv(["sphinx_args=-W -b html -d {envtmpdir}/doctrees source  {distdir}/html"]) {
+                        sh "${env.TOX} -e docs"
+
+                      }
+                      dir('.tox/dist/') {
+                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                      }
+                      deleteDir()
+                      unstash "HTML Documentation"
+                  }
+
+                  echo "Updating online documentation"
+                  try {
+                    sh "ls -laR"
+                      // sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
+                  } catch (error) {
+                      echo "Error with uploading docs"
+                      throw error
+                  }
                 }
             }
         }
