@@ -26,8 +26,8 @@ pipeline {
                 script{
                   try {
                       unstash "asdfasdf"
-                  } catch (error e) {
-                    echo e
+                  } catch (error) {
+                    echo "Alternative method"
                   }
 
 
