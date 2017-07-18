@@ -23,7 +23,16 @@ pipeline {
                 checkout scm
                 stash includes: '**', name: "Source", useDefaultExcludes: false
                 stash includes: 'deployment.yml', name: "Deployment"
-                unstash "asdfasdf"
+                script{
+                  try {
+                      unstash "asdfasdf"
+                  } catch (E) P{
+                    echo E
+                  }
+
+
+                }
+
 
             }
 
