@@ -63,12 +63,19 @@ pipeline {
             steps {
                 parallel(
                         "Documentation": {
+                          node(label: "!Windows"){
+                            // deleteDir()
                             sh "${env.TOX} -e docs"
                             stash includes: '.tox/dist/html/**', name: "Documentation source", useDefaultExcludes: false
+                          }
+
                         },
                         "MyPy": {
+                          node(label: "!Windows"){
+                            // deleteDir()
                             sh "${env.TOX} -e mypy"
                             junit 'mypy.xml'
+                          }
 
                         }
                 )
