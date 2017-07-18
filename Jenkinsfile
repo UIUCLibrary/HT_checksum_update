@@ -189,7 +189,7 @@ pipeline {
         stage("Update online documentation") {
             agent any
             when {
-              expression { params.ADDITONAL_TESTS == true && params.UPDATE_DOCS == true }
+              expression {params.UPDATE_DOCS == true }
                 // expression { params.ADDITONAL_TESTS == true && params.BUILD_DOCS == true }
             }
 
