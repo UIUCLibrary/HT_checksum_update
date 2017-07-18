@@ -202,10 +202,7 @@ pipeline {
                   } catch (error) {
                       echo "Building documentation"
                       unstash "Source"
-                      withEnv(['sphinx_args=-W -b html -d {envtmpdir}/doctrees source {distdir}/html']) {
-                        sh "${env.TOX} -e docs"
-
-                      }
+                      sh "${env.TOX} -e docs"
                       dir('.tox/dist/') {
                         sh "ls -la"
                         stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
