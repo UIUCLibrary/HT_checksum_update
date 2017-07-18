@@ -84,7 +84,8 @@ pipeline {
             }
             post {
               success {
-                sh "ls -la"
+                deleteDir()
+                unstash "Documentation source"
                 sh 'tar -czvf sphinx_html_docs.tar.gz -C .tox/dist/html .'
                 archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
               }
