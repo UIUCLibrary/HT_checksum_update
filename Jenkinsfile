@@ -189,7 +189,8 @@ pipeline {
         stage("Update online documentation") {
             agent any
             when {
-                expression { params.ADDITONAL_TESTS == true && params.BUILD_DOCS == true }
+              expression { params.BUILD_DOCS == true }
+                // expression { params.ADDITONAL_TESTS == true && params.BUILD_DOCS == true }
             }
 
             steps {
@@ -197,7 +198,6 @@ pipeline {
                 script {
                   try {
                       unstash "HTML Documentation"
-                      echo "resused doc"
                   } catch (error) {
                       echo "Building documentation"
                       withEnv(["sphinx_args=-W -b html -d {envtmpdir}/doctrees source  {distdir}/html"]) {
