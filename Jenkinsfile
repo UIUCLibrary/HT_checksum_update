@@ -7,7 +7,7 @@ pipeline {
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
-        booleanParam(name: "ADDITONAL_TESTS", defaultValue: true, description: "Run additional tests")
+        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
         booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
         // booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
