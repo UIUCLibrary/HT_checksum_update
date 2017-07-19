@@ -86,6 +86,7 @@ target_name = "udhtchecksum.exe" if platform.system() == "Windows" else "udhtche
 cx_Freeze.setup(
     name=hathi_checksum.FULL_TITLE,
     description=hathi_checksum.__description__,
+    license="University of Illinois/NCSA Open Source License",
     version=hathi_checksum.__version__,
     author=hathi_checksum.__author__,
     author_email=hathi_checksum.__author_email__,
