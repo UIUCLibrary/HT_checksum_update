@@ -58,7 +58,7 @@ pipeline {
 
         stage("Additional tests") {
             when {
-                expression { params.ADDITONAL_TESTS == true }
+                expression { params.ADDITIONAL_TESTS == true }
             }
 
             steps {
