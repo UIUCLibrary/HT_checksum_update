@@ -208,7 +208,7 @@ pipeline {
                         echo "Building documentation"
                         unstash "Source"
                         sh "${env.PYTHON3} setup.py build_sphinx"
-                        dir("docs/build"){
+                        dir("doc/build"){
                             stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                         }
                         deleteDir()
