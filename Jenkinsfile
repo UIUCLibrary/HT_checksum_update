@@ -198,23 +198,16 @@ pipeline {
                 script {
                   try {
                       unstash "HTML Documentation"
-                      echo "resused doc"
                   } catch (error) {
                       echo "Building documentation"
                       unstash "Source"
                       sh "${env.PYTHON3} setup.py build_sphinx"
-//                      sh "${env.TOX} -e docs"
-//                      dir('.tox/dist/') {
-//                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-//                      }
-//                      deleteDir()
-//                      unstash "HTML Documentation"
+
                   }
 
                   echo "Updating online documentation"
                   try {
-                        sh "ls -laR"
-//                      sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
+                      sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" doc/build/html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
                   } catch (error) {
                       echo "Error with uploading docs"
                       throw error
