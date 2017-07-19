@@ -9,12 +9,12 @@ pipeline {
         booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
         booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
-        booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
-        // booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
-        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
+        booleanParam(name: "DEPLOY", defaultValue: false, description: "Create SCCM deployment package")
+        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_checksum_updater", description: 'The directory that the docs should be saved under')
     }
     stages {
+
         stage("Cloning Source") {
             agent any
 
@@ -23,9 +23,6 @@ pipeline {
                 checkout scm
                 stash includes: '**', name: "Source", useDefaultExcludes: false
                 stash includes: 'deployment.yml', name: "Deployment"
-
-
-
             }
 
         }
@@ -58,10 +55,12 @@ pipeline {
                 )
             }
         }
+
         stage("Additional tests") {
             when {
                 expression { params.ADDITONAL_TESTS == true }
             }
+
             steps {
                 parallel(
                         "Documentation": {
@@ -86,6 +85,7 @@ pipeline {
                         }
                 )
             }
+
             post {
               success {
                 deleteDir()
@@ -95,10 +95,12 @@ pipeline {
               }
             }
         }
+
         stage("Packaging") {
             when {
                 expression { params.PACKAGE == true }
             }
+
             steps {
                 parallel(
                         "Windows Wheel": {
@@ -147,11 +149,13 @@ pipeline {
                 )
             }
         }
+
         stage("Deploy - Staging") {
             agent any
             when {
                 expression { params.DEPLOY == true && params.PACKAGE == true }
             }
+
             steps {
                 deleteDir()
                 unstash "msi"
@@ -165,11 +169,13 @@ pipeline {
             when {
                 expression { params.DEPLOY == true && params.PACKAGE == true }
             }
+
             steps {
                 deleteDir()
                 unstash "msi"
                 sh "rsync -rv ./ ${env.SCCM_UPLOAD_FOLDER}/"
             }
+
             post {
                 success {
                     git url: 'https://github.com/UIUCLibrary/sccm_deploy_message_generator.git'
@@ -186,11 +192,11 @@ pipeline {
                 }
             }
         }
+
         stage("Update online documentation") {
             agent any
             when {
               expression {params.UPDATE_DOCS == true }
-                // expression { params.ADDITONAL_TESTS == true && params.BUILD_DOCS == true }
             }
 
             steps {
@@ -198,11 +204,10 @@ pipeline {
                 script {
                   try {
                       unstash "HTML Documentation"
-                  } catch (error) {
+                  } catch (error) { // No docs have been created yet, so generate it
                       echo "Building documentation"
                       unstash "Source"
                       sh "${env.PYTHON3} setup.py build_sphinx"
-
                   }
 
                   echo "Updating online documentation"
