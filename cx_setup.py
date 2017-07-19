@@ -86,16 +86,19 @@ target_name = "udhtchecksum.exe" if platform.system() == "Windows" else "udhtche
 cx_Freeze.setup(
     name=hathi_checksum.FULL_TITLE,
     description=hathi_checksum.__description__,
+    license="University of Illinois/NCSA Open Source License",
     version=hathi_checksum.__version__,
     author=hathi_checksum.__author__,
     author_email=hathi_checksum.__author_email__,
     options={
         "build_exe": build_exe_options,
         "bdist_msi": {
+            "upgrade_code": "{F212C57B-E55D-40F7-88DC-A49CB97EFA50}",
             "data": {
                 "Shortcut": shortcut_table,
                 "Directory": directory_table
-            }
+            },
+
         }
     },
     executables=[cx_Freeze.Executable("hathi_checksum/__main__.py",

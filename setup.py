@@ -9,7 +9,7 @@ setup(
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
     url=hathi_checksum.__url__,
-    license='',
+    license='University of Illinois/NCSA Open Source License',
     author=hathi_checksum.__author__,
     author_email=hathi_checksum.__author_email__,
     entry_points={

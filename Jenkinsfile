@@ -1,20 +1,20 @@
 pipeline {
     agent any
     environment {
-        mypy_args = "--junit-xml=reports/mypy.xml"
+        mypy_args = "--junit-xml=mypy.xml"
         pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
     }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
-        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
-        booleanParam(name: "STATIC_ANALYSIS", defaultValue: true, description: "Run static analysis tests")
-        booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
-        booleanParam(name: "DEPLOY", defaultValue: false, description: "Deploy SCCM")
-        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
-        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
+        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
+        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
+        booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
+        booleanParam(name: "DEPLOY", defaultValue: false, description: "Create SCCM deployment package")
+        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_checksum_updater", description: 'The directory that the docs should be saved under')
     }
     stages {
+
         stage("Cloning Source") {
             agent any
 
@@ -23,7 +23,6 @@ pipeline {
                 checkout scm
                 stash includes: '**', name: "Source", useDefaultExcludes: false
                 stash includes: 'deployment.yml', name: "Deployment"
-
             }
 
         }
@@ -56,35 +55,52 @@ pipeline {
                 )
             }
         }
-        stage("Documentation") {
-            agent any
+
+        stage("Additional tests") {
             when {
-                expression { params.BUILD_DOCS == true }
+                expression { params.ADDITIONAL_TESTS == true }
             }
+
             steps {
-                deleteDir()
-                unstash "Source"
-                withEnv(['PYTHON=${env.PYTHON3}']) {
-                    sh """${env.PYTHON3} -m venv .env
-                          . .env/bin/activate
-                          pip install --upgrade pip
-                          pip install -r requirements.txt
-                          cd docs && make html
-                        """
-                    stash includes: '**', name: "Documentation source", useDefaultExcludes: false
-                }
+                parallel(
+                        "Documentation": {
+                          node(label: "!Windows"){
+                            deleteDir()
+                            unstash "Source"
+                            sh "${env.TOX} -e docs"
+                            dir('.tox/dist/') {
+                              stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                            }
+                          }
+
+                        },
+                        "MyPy": {
+                          node(label: "!Windows"){
+                            deleteDir()
+                            unstash "Source"
+                            sh "${env.TOX} -e mypy"
+                            junit 'mypy.xml'
+                          }
+
+                        }
+                )
             }
+
             post {
-                success {
-                    sh 'tar -czvf sphinx_html_docs.tar.gz -C docs/build/html .'
-                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-                }
+              success {
+                deleteDir()
+                unstash "HTML Documentation"
+                sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
+                archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
+              }
             }
         }
+
         stage("Packaging") {
             when {
                 expression { params.PACKAGE == true }
             }
+
             steps {
                 parallel(
                         "Windows Wheel": {
@@ -133,11 +149,13 @@ pipeline {
                 )
             }
         }
+
         stage("Deploy - Staging") {
             agent any
             when {
                 expression { params.DEPLOY == true && params.PACKAGE == true }
             }
+
             steps {
                 deleteDir()
                 unstash "msi"
@@ -151,11 +169,13 @@ pipeline {
             when {
                 expression { params.DEPLOY == true && params.PACKAGE == true }
             }
+
             steps {
                 deleteDir()
                 unstash "msi"
                 sh "rsync -rv ./ ${env.SCCM_UPLOAD_FOLDER}/"
             }
+
             post {
                 success {
                     git url: 'https://github.com/UIUCLibrary/sccm_deploy_message_generator.git'
@@ -172,23 +192,41 @@ pipeline {
                 }
             }
         }
+
         stage("Update online documentation") {
             agent any
             when {
-                expression { params.UPDATE_DOCS == true && params.BUILD_DOCS == true }
+              expression {params.UPDATE_DOCS == true }
             }
 
             steps {
                 deleteDir()
                 script {
-                    echo "Updating online documentation"
-                    unstash "Documentation source"
                     try {
-                        sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" docs/build/html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
+                        unstash "HTML Documentation"
+                    } catch (error) { // No docs have been created yet, so generate it
+                        echo "Building documentation"
+                        unstash "Source"
+                        sh "${env.PYTHON3} setup.py build_sphinx"
+                        dir("doc/build"){
+                            stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                        }
+                        deleteDir()
+                        unstash "HTML Documentation"
+
+                    }
+
+                    echo "Updating online documentation"
+                    try {
+                        sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
                     } catch (error) {
                         echo "Error with uploading docs"
                         throw error
                     }
+                    echo "Archiving deployed docs"
+                    sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
+                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
+
                 }
             }
         }
