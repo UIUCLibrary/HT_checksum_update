@@ -37,7 +37,6 @@ pipeline {
             steps {
                 parallel(
                         "Windows": {
-//                            tox(env.TOX, "pytest", "Source", "Windows", {junit 'reports/junit-*.xml'}, true)
                             node(label: 'Windows') {
                                 deleteDir()
                                 unstash "Source"
@@ -70,12 +69,10 @@ pipeline {
                         "Documentation": {
                             script {
                                 def runner = new Tox(this)
-//                                def runner = new Tox(this, "$env.TOX")
                                 runner.env = "docs"
                                 runner.windows = false
                                 runner.stash = "Source"
                                 runner.label = "!Windows"
-                                echo "HERE"
                                 runner.post = {
                                     dir('.tox/dist/') {
                                         stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
@@ -84,30 +81,6 @@ pipeline {
                                 runner.run()
 
                             }
-//                            script {
-//
-//
-//                                tox {
-////                                    toxPath = "${env.TOX}"
-//                                    env = "docs"
-//                                    stash = "Source"
-//                                    label = "!Windows"
-//                                    post =
-//                                            {
-//                                                dir('.tox/dist/') {
-//                                                    stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-//                                                }
-//
-//                                            }
-//                                    windows = false
-//                                }
-//                            }
-//                            tox(env.TOX, "docs", "Source", "!Windows", {
-//                                dir('.tox/dist/') {
-//                                    stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-//                                }
-//                            }
-//                            )
                         },
                         "MyPy": {
                             script {
@@ -122,25 +95,6 @@ pipeline {
                                 runner.run()
 
                             }
-//                                echo "path = ${runner.toxPath}"
-//                                echo "I got a runner ${runner}"
-//                            tox {
-////                                    toxPath = "${env.TOX}"
-//                                env = "mypy"
-//                                stash = "Source"
-//                                label = "!Windows"
-//                                post =
-//                                        {
-//                                            dir('.tox/dist/') {
-//                                                stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-//                                            }
-//
-//                                        }
-//                                windows = false
-//                            }
-//
-//                        }
-//                            tox(env.TOX, "mypy", "Source", "!Windows", { junit 'mypy.xml' })
                         }
                 )
             }
