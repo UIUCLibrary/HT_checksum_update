@@ -1,5 +1,5 @@
-@Library("ds-utils") _
-//import org.ds.Tox
+@Library("ds-utils")
+import org.ds.Tox
 
 pipeline {
     agent any
@@ -96,16 +96,16 @@ pipeline {
                         },
                         "MyPy": {
                             script {
-                                def runner = new org.ds.Tox(env.TOX)
-                                runner.windows = false
-                                runner.stash = "Source"
-                                runner.label = "!Windows"
-                                runner.post = {
-                                    dir('.tox/dist/') {
-                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-                                    }
-
-                                }
+                                def runner = new Tox(env.TOX)
+//                                runner.windows = false
+//                                runner.stash = "Source"
+//                                runner.label = "!Windows"
+//                                runner.post = {
+//                                    dir('.tox/dist/') {
+//                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+//                                    }
+//
+//                                }
 
                             }
 //                                echo "path = ${runner.toxPath}"
