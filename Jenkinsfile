@@ -81,6 +81,7 @@ pipeline {
                                         stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                                     }
                                 }
+                                runner.run()
 
                             }
 //                            script {
@@ -118,6 +119,7 @@ pipeline {
                                 runner.post = {
                                     junit 'mypy.xml'
                                 }
+                                runner.run()
 
                             }
 //                                echo "path = ${runner.toxPath}"
