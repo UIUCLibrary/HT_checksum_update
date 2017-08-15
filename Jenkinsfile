@@ -48,23 +48,27 @@ pipeline {
                                 }
                                 runner.run()
                             }
-//                            node(label: 'Windows') {
-//                                deleteDir()
-//                                unstash "Source"
-//                                bat "${env.TOX}  -e pytest"
-//                                junit 'reports/junit-*.xml'
-//
-//                            }
                         },
                         "Linux": {
-                            node(label: "!Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
-                                    sh "${env.TOX}  -e pytest"
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
                                 }
-                                junit 'reports/junit-*.xml'
+                                runner.run()
                             }
+//                            node(label: "!Windows") {
+//                                deleteDir()
+//                                unstash "Source"
+//                                withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
+//                                    sh "${env.TOX}  -e pytest"
+//                                }
+//                                junit 'reports/junit-*.xml'
+//                            }
                         }
                 )
             }
