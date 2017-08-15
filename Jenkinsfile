@@ -97,15 +97,15 @@ pipeline {
                         "MyPy": {
                             script {
                                 def runner = new Tox(this, "$env.TOX")
-//                                runner.windows = false
-//                                runner.stash = "Source"
-//                                runner.label = "!Windows"
-//                                runner.post = {
-//                                    dir('.tox/dist/') {
-//                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-//                                    }
-//
-//                                }
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    dir('.tox/dist/') {
+                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                                    }
+
+                                }
 
                             }
 //                                echo "path = ${runner.toxPath}"
