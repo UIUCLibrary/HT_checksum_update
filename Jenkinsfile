@@ -142,7 +142,7 @@ pipeline {
                             }
                         },
                         "Source Release": {
-                            createSource(env.PYTHON3, "Source")
+                            createSource(env.PYTHON3, stash: "Source")
                         }
                 )
             }
