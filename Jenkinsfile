@@ -65,36 +65,42 @@ pipeline {
             steps {
                 parallel(
                         "Documentation": {
-                          node(label: "!Windows"){
-                            deleteDir()
-                            unstash "Source"
-                            sh "${env.TOX} -e docs"
-                            dir('.tox/dist/') {
-                              stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                            node(label: "!Windows") {
+                                deleteDir()
+                                unstash "Source"
+                                sh "${env.TOX} -e docs"
+                                dir('.tox/dist/') {
+                                    stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                                }
                             }
-                          }
 
                         },
                         "MyPy": {
-                            tox()
-                          node(label: "!Windows"){
-                            deleteDir()
-                            unstash "Source"
-                            sh "${env.TOX} -e mypy"
-                            junit 'mypy.xml'
-                          }
+                            script {
+                                tox {
+
+                                }
+
+                            }
+
+                            node(label: "!Windows") {
+                                deleteDir()
+                                unstash "Source"
+                                sh "${env.TOX} -e mypy"
+                                junit 'mypy.xml'
+                            }
 
                         }
                 )
             }
 
             post {
-              success {
-                deleteDir()
-                unstash "HTML Documentation"
-                sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
-                archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-              }
+                success {
+                    deleteDir()
+                    unstash "HTML Documentation"
+                    sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
+                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
+                }
             }
         }
 
@@ -195,7 +201,7 @@ pipeline {
         stage("Update online documentation") {
             agent any
             when {
-              expression {params.UPDATE_DOCS == true }
+                expression { params.UPDATE_DOCS == true }
             }
 
             steps {
@@ -207,7 +213,7 @@ pipeline {
                         echo "Building documentation"
                         unstash "Source"
                         sh "${env.PYTHON3} setup.py build_sphinx"
-                        dir("doc/build"){
+                        dir("doc/build") {
                             stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                         }
                         deleteDir()
