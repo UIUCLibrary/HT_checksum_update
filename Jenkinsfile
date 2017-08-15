@@ -96,7 +96,7 @@ pipeline {
                         },
                         "MyPy": {
                             script {
-                                def runner = new Tox("$env.TOX")
+                                def runner = new Tox(this, "$env.TOX")
 //                                runner.windows = false
 //                                runner.stash = "Source"
 //                                runner.label = "!Windows"
