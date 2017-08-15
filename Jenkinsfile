@@ -70,7 +70,7 @@ pipeline {
 
 
                                 tox {
-                                    toxPath = env.TOX
+                                    toxPath = "${env.TOX}"
                                     env = "docs"
                                     stash = "Source"
                                     label = "!Windows"
@@ -94,7 +94,7 @@ pipeline {
                         "MyPy": {
                             script {
                                 tox {
-                                    toxPath = env.TOX
+                                    toxPath = "${env.TOX}"
                                     env = "mypy"
                                     stash = "Source"
                                     label = "!Windows"
