@@ -69,7 +69,8 @@ pipeline {
                 parallel(
                         "Documentation": {
                             script {
-                                def runner = new Tox(this, "$env.TOX")
+                                def runner = new Tox(this)
+//                                def runner = new Tox(this, "$env.TOX")
                                 runner.env = "docs"
                                 runner.windows = false
                                 runner.stash = "Source"
@@ -108,7 +109,7 @@ pipeline {
                         },
                         "MyPy": {
                             script {
-                                def runner = new Tox(this, "$env.TOX")
+                                def runner = new Tox(this)
                                 runner.env = "mypy"
                                 runner.windows = false
                                 runner.stash = "Source"
