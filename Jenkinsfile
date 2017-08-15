@@ -143,10 +143,10 @@ pipeline {
                         },
                         "Source Release": {
                             createSource(this, env.PYTHON3, "Source")
-                            deleteDir()
-                            unstash "Source"
-                            sh "${env.PYTHON3} setup.py sdist"
-                            archiveArtifacts artifacts: "dist/**", fingerprint: true
+//                            deleteDir()
+//                            unstash "Source"
+//                            sh "${env.PYTHON3} setup.py sdist"
+//                            archiveArtifacts artifacts: "dist/**", fingerprint: true
                         }
                 )
             }
