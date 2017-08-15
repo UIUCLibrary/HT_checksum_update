@@ -97,169 +97,180 @@ pipeline {
                         "MyPy": {
                             script {
                                 def runner = new Tox(env.TOX)
-                                echo "path = ${runner.toxPath}"
-                                echo "I got a runner ${runner}"
-                                tox {
-//                                    toxPath = "${env.TOX}"
-                                    env = "mypy"
-                                    stash = "Source"
-                                    label = "!Windows"
-                                    post =
-                                            {
-                                                dir('.tox/dist/') {
-                                                    stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-                                                }
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    dir('.tox/dist/') {
+                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                                    }
 
-                                            }
-                                    windows = false
                                 }
 
                             }
+//                                echo "path = ${runner.toxPath}"
+//                                echo "I got a runner ${runner}"
+//                            tox {
+////                                    toxPath = "${env.TOX}"
+//                                env = "mypy"
+//                                stash = "Source"
+//                                label = "!Windows"
+//                                post =
+//                                        {
+//                                            dir('.tox/dist/') {
+//                                                stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+//                                            }
+//
+//                                        }
+//                                windows = false
+//                            }
+//
+//                        }
 //                            tox(env.TOX, "mypy", "Source", "!Windows", { junit 'mypy.xml' })
-                        }
-                )
             }
-
-            post {
-                success {
-                    deleteDir()
-                    unstash "HTML Documentation"
-                    sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
-                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-                }
-            }
+            )
         }
 
-        stage("Packaging") {
-            when {
-                expression { params.PACKAGE == true }
+        post {
+            success {
+                deleteDir()
+                unstash "HTML Documentation"
+                sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
+                archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
             }
+        }
+    }
 
-            steps {
-                parallel(
-                        "Windows Wheel": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
+    stage("Packaging") {
+        when {
+            expression { params.PACKAGE == true }
+        }
+
+        steps {
+            parallel(
+                    "Windows Wheel": {
+                        node(label: "Windows") {
+                            deleteDir()
+                            unstash "Source"
+                            bat """${env.PYTHON3} -m venv .env
                                         call .env/Scripts/activate.bat
                                         pip install --upgrade pip setuptools
                                         pip install -r requirements.txt
                                         python setup.py bdist_wheel
                                     """
-                                archiveArtifacts artifacts: "dist/**", fingerprint: true
-                            }
-                        },
-                        "Windows CX_Freeze MSI": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
+                            archiveArtifacts artifacts: "dist/**", fingerprint: true
+                        }
+                    },
+                    "Windows CX_Freeze MSI": {
+                        node(label: "Windows") {
+                            deleteDir()
+                            unstash "Source"
+                            bat """${env.PYTHON3} -m venv .env
                                        call .env/Scripts/activate.bat
                                        pip install -r requirements.txt
                                        python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
                                        call .env/Scripts/deactivate.bat
                                     """
-                                bat "build\\msi\\udhtchecksum.exe --pytest"
-                                dir("dist") {
-                                    stash includes: "*.msi", name: "msi"
-                                }
+                            bat "build\\msi\\udhtchecksum.exe --pytest"
+                            dir("dist") {
+                                stash includes: "*.msi", name: "msi"
+                            }
 
-                            }
-                            node(label: "Windows") {
-                                deleteDir()
-                                git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
-                                unstash "msi"
-                                bat "call validate.bat -i"
-                                archiveArtifacts artifacts: "*.msi", fingerprint: true
-                            }
-                        },
-                        "Source Release": {
-                            createSourceRelease(env.PYTHON3, "Source")
                         }
-                )
-            }
+                        node(label: "Windows") {
+                            deleteDir()
+                            git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
+                            unstash "msi"
+                            bat "call validate.bat -i"
+                            archiveArtifacts artifacts: "*.msi", fingerprint: true
+                        }
+                    },
+                    "Source Release": {
+                        createSourceRelease(env.PYTHON3, "Source")
+                    }
+            )
+        }
+    }
+
+    stage("Deploy - Staging") {
+        agent any
+        when {
+            expression { params.DEPLOY == true && params.PACKAGE == true }
         }
 
-        stage("Deploy - Staging") {
-            agent any
-            when {
-                expression { params.DEPLOY == true && params.PACKAGE == true }
-            }
+        steps {
+            deleteDir()
+            unstash "msi"
+            sh "rsync -rv ./ \"${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/\""
+            input("Deploy to production?")
+        }
+    }
 
-            steps {
-                deleteDir()
-                unstash "msi"
-                sh "rsync -rv ./ \"${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/\""
-                input("Deploy to production?")
-            }
+    stage("Deploy - SCCM upload") {
+        agent any
+        when {
+            expression { params.DEPLOY == true && params.PACKAGE == true }
         }
 
-        stage("Deploy - SCCM upload") {
-            agent any
-            when {
-                expression { params.DEPLOY == true && params.PACKAGE == true }
-            }
+        steps {
+            deleteDir()
+            unstash "msi"
+            sh "rsync -rv ./ ${env.SCCM_UPLOAD_FOLDER}/"
+        }
 
-            steps {
-                deleteDir()
-                unstash "msi"
-                sh "rsync -rv ./ ${env.SCCM_UPLOAD_FOLDER}/"
-            }
-
-            post {
-                success {
-                    git url: 'https://github.com/UIUCLibrary/sccm_deploy_message_generator.git'
-                    unstash "Deployment"
-                    sh """${env.PYTHON3} -m venv .env
+        post {
+            success {
+                git url: 'https://github.com/UIUCLibrary/sccm_deploy_message_generator.git'
+                unstash "Deployment"
+                sh """${env.PYTHON3} -m venv .env
                           . .env/bin/activate
                           pip install --upgrade pip
                           pip install setuptools --upgrade
                           python setup.py install
                           deploymessage deployment.yml --save=deployment_request.txt
                       """
-                    archiveArtifacts artifacts: "deployment_request.txt"
-                    echo(readFile('deployment_request.txt'))
-                }
-            }
-        }
-
-        stage("Update online documentation") {
-            agent any
-            when {
-                expression { params.UPDATE_DOCS == true }
-            }
-
-            steps {
-                deleteDir()
-                script {
-                    try {
-                        unstash "HTML Documentation"
-                    } catch (error) { // No docs have been created yet, so generate it
-                        echo "Building documentation"
-                        unstash "Source"
-                        sh "${env.PYTHON3} setup.py build_sphinx"
-                        dir("doc/build") {
-                            stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-                        }
-                        deleteDir()
-                        unstash "HTML Documentation"
-
-                    }
-
-                    echo "Updating online documentation"
-                    try {
-                        sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
-                    } catch (error) {
-                        echo "Error with uploading docs"
-                        throw error
-                    }
-                    echo "Archiving deployed docs"
-                    sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
-                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-
-                }
+                archiveArtifacts artifacts: "deployment_request.txt"
+                echo(readFile('deployment_request.txt'))
             }
         }
     }
+
+    stage("Update online documentation") {
+        agent any
+        when {
+            expression { params.UPDATE_DOCS == true }
+        }
+
+        steps {
+            deleteDir()
+            script {
+                try {
+                    unstash "HTML Documentation"
+                } catch (error) { // No docs have been created yet, so generate it
+                    echo "Building documentation"
+                    unstash "Source"
+                    sh "${env.PYTHON3} setup.py build_sphinx"
+                    dir("doc/build") {
+                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                    }
+                    deleteDir()
+                    unstash "HTML Documentation"
+
+                }
+
+                echo "Updating online documentation"
+                try {
+                    sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
+                } catch (error) {
+                    echo "Error with uploading docs"
+                    throw error
+                }
+                echo "Archiving deployed docs"
+                sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
+                archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
+
+            }
+        }
+    }
+}
 }
