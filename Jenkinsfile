@@ -97,6 +97,7 @@ pipeline {
                         "MyPy": {
                             script {
                                 def runner = new Tox(env.TOX)
+                                echo "path = ${runner.toxPath}"
                                 echo "I got a runner ${runner}"
                                 tox {
 //                                    toxPath = "${env.TOX}"
