@@ -67,18 +67,18 @@ pipeline {
                 parallel(
                         "Documentation": {
                             tox {
-                                toxPath: env.TOX
-                                env: "docs"
-                                stash: "Source"
-                                label: "!Windows"
-                                post:
+                                toxPath= env.TOX
+                                env= "docs"
+                                stash= "Source"
+                                label= "!Windows"
+                                post=
                                 {
                                     dir('.tox/dist/') {
                                         stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                                     }
 
                                 }
-                                windows: false
+                                windows= false
                             }
 //                            tox(env.TOX, "docs", "Source", "!Windows", {
 //                                dir('.tox/dist/') {
@@ -89,18 +89,18 @@ pipeline {
                         },
                         "MyPy": {
                             tox {
-                                toxPath: env.TOX
-                                env: "mypy"
-                                stash: "Source"
-                                label: "!Windows"
-                                post:
+                                toxPath= env.TOX
+                                env= "mypy"
+                                stash= "Source"
+                                label= "!Windows"
+                                post=
                                 {
                                     dir('.tox/dist/') {
                                         stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                                     }
 
                                 }
-                                windows: false
+                                windows= false
                             }
 //                            tox(env.TOX, "mypy", "Source", "!Windows", { junit 'mypy.xml' })
                         }
