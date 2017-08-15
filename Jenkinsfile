@@ -65,28 +65,24 @@ pipeline {
             steps {
                 parallel(
                         "Documentation": {
-                            node(label: "!Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                sh "${env.TOX} -e docs"
+                            tox(env.TOX, "docs", "Source", "!Windows", {
                                 dir('.tox/dist/') {
                                     stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                                 }
                             }
-
-                        },
-                        "MyPy": {
-                            tox(env.TOX, "mypy", "Source", "!Windows", {junit 'mypy.xml'})
-
-
-
+                            )
 //                            node(label: "!Windows") {
 //                                deleteDir()
 //                                unstash "Source"
-//                                sh "${env.TOX} -e mypy"
-//                                junit 'mypy.xml'
+//                                sh "${env.TOX} -e docs"
+//                                dir('.tox/dist/') {
+//                                    stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+//                                }
 //                            }
 
+                        },
+                        "MyPy": {
+                            tox(env.TOX, "mypy", "Source", "!Windows", { junit 'mypy.xml' })
                         }
                 )
             }
