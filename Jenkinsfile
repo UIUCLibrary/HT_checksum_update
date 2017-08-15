@@ -142,7 +142,7 @@ pipeline {
                             }
                         },
                         "Source Release": {
-                            createSource(env.PYTHON3)
+                            createSource(this, env.PYTHON3)
                             deleteDir()
                             unstash "Source"
                             sh "${env.PYTHON3} setup.py sdist"
