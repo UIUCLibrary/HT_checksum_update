@@ -101,10 +101,7 @@ pipeline {
                                 runner.stash = "Source"
                                 runner.label = "!Windows"
                                 runner.post = {
-                                    dir('.tox/dist/') {
-                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-                                    }
-
+                                    junit 'mypy.xml'
                                 }
 
                             }
