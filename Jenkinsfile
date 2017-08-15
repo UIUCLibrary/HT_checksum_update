@@ -35,14 +35,14 @@ pipeline {
             steps {
                 parallel(
                         "Windows": {
-                            tox(env.TOX, "pytest", "Source", "Windows", {junit 'reports/junit-*.xml'}, true)
-//                            node(label: 'Windows') {
-//                                deleteDir()
-//                                unstash "Source"
-//                                bat "${env.TOX}  -e pytest"
-//                                junit 'reports/junit-*.xml'
-//
-//                            }
+//                            tox(env.TOX, "pytest", "Source", "Windows", {junit 'reports/junit-*.xml'}, true)
+                            node(label: 'Windows') {
+                                deleteDir()
+                                unstash "Source"
+                                bat "${env.TOX}  -e pytest"
+                                junit 'reports/junit-*.xml'
+
+                            }
                         },
                         "Linux": {
                             node(label: "!Windows") {
@@ -66,15 +66,43 @@ pipeline {
             steps {
                 parallel(
                         "Documentation": {
-                            tox(env.TOX, "docs", "Source", "!Windows", {
-                                dir('.tox/dist/') {
-                                    stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                            tox {
+                                toxPath: env.TOX
+                                env: "docs"
+                                stash: "Source"
+                                label: "!Windows"
+                                post:
+                                {
+                                    dir('.tox/dist/') {
+                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                                    }
+
                                 }
+                                windows: false
                             }
-                            )
+//                            tox(env.TOX, "docs", "Source", "!Windows", {
+//                                dir('.tox/dist/') {
+//                                    stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+//                                }
+//                            }
+//                            )
                         },
                         "MyPy": {
-                            tox(env.TOX, "mypy", "Source", "!Windows", { junit 'mypy.xml' })
+                            tox {
+                                toxPath: env.TOX
+                                env: "mypy"
+                                stash: "Source"
+                                label: "!Windows"
+                                post:
+                                {
+                                    dir('.tox/dist/') {
+                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                                    }
+
+                                }
+                                windows: false
+                            }
+//                            tox(env.TOX, "mypy", "Source", "!Windows", { junit 'mypy.xml' })
                         }
                 )
             }
