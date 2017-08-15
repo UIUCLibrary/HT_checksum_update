@@ -76,6 +76,7 @@ pipeline {
 
                         },
                         "MyPy": {
+                            tox()
                           node(label: "!Windows"){
                             deleteDir()
                             unstash "Source"
