@@ -76,19 +76,16 @@ pipeline {
 
                         },
                         "MyPy": {
-                            script {
-                                tox {
+                            tox(env.TOX, "mypy", "Source", "!Windows", {junit 'mypy.xml'})
 
-                                }
 
-                            }
 
-                            node(label: "!Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                sh "${env.TOX} -e mypy"
-                                junit 'mypy.xml'
-                            }
+//                            node(label: "!Windows") {
+//                                deleteDir()
+//                                unstash "Source"
+//                                sh "${env.TOX} -e mypy"
+//                                junit 'mypy.xml'
+//                            }
 
                         }
                 )
