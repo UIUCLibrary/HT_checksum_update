@@ -1,5 +1,5 @@
 @Library("ds-utils") _
-import org.ds.Tox
+//import org.ds.Tox
 
 pipeline {
     agent any
@@ -96,7 +96,7 @@ pipeline {
                         },
                         "MyPy": {
                             script {
-                                def runner = new Tox(env.TOX)
+                                def runner = new org.ds.Tox(env.TOX)
                                 runner.windows = false
                                 runner.stash = "Source"
                                 runner.label = "!Windows"
