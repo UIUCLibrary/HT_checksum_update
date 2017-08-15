@@ -76,6 +76,7 @@ pipeline {
                                 runner.stash = "Source"
                                 runner.label = "!Windows"
                                 runner.post = {
+                                    echo "HERE"
                                     dir('.tox/dist/') {
                                         stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
                                     }
