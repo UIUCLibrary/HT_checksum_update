@@ -37,13 +37,24 @@ pipeline {
             steps {
                 parallel(
                         "Windows": {
-                            node(label: 'Windows') {
-                                deleteDir()
-                                unstash "Source"
-                                bat "${env.TOX}  -e pytest"
-                                junit 'reports/junit-*.xml'
-
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = true
+                                runner.stash = "Source"
+                                runner.label = "Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
+                                }
+                                runner.run()
                             }
+//                            node(label: 'Windows') {
+//                                deleteDir()
+//                                unstash "Source"
+//                                bat "${env.TOX}  -e pytest"
+//                                junit 'reports/junit-*.xml'
+//
+//                            }
                         },
                         "Linux": {
                             node(label: "!Windows") {
