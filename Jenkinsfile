@@ -106,14 +106,6 @@ pipeline {
                 )
             }
 
-//            post {
-//                success {
-//                    deleteDir()
-//                    unstash "HTML Documentation"
-//                    sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
-//                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-//                }
-//            }
         }
 
         stage("Packaging") {
@@ -210,7 +202,7 @@ pipeline {
             }
 
             steps {
-                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER
+                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
             }
         }
     }
