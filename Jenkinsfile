@@ -1,5 +1,5 @@
 @Library("ds-utils")
-import org.ds.Tox
+import org.ds.*
 
 pipeline {
     agent any
