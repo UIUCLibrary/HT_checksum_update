@@ -210,7 +210,7 @@ pipeline {
             }
 
             steps {
-                updateOnlineDocs(url_subdomain: params.URL_SUBFOLDER, stash_name:"HTML Documentation")
+                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
             }
         }
     }
