@@ -193,7 +193,7 @@ pipeline {
                 success {
                     script{
                         unstash "Source"
-                        def  deployment_request = requestDeployment this, "deployment.yml"
+                        def  deployment_request = requestDeploy this, "deployment.yml"
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
