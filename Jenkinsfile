@@ -1,3 +1,6 @@
+@Library("ds-utils")
+import org.ds.*
+
 pipeline {
     agent any
     environment {
@@ -34,22 +37,29 @@ pipeline {
             steps {
                 parallel(
                         "Windows": {
-                            node(label: 'Windows') {
-                                deleteDir()
-                                unstash "Source"
-                                bat "${env.TOX}  -e pytest"
-                                junit 'reports/junit-*.xml'
-
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = true
+                                runner.stash = "Source"
+                                runner.label = "Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
+                                }
+                                runner.run()
                             }
                         },
                         "Linux": {
-                            node(label: "!Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                withEnv(["PATH=${env.PYTHON3}/..:${env.PATH}"]) {
-                                    sh "${env.TOX}  -e pytest"
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "pytest"
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    junit 'reports/junit-*.xml'
                                 }
-                                junit 'reports/junit-*.xml'
+                                runner.run()
                             }
                         }
                 )
@@ -64,35 +74,45 @@ pipeline {
             steps {
                 parallel(
                         "Documentation": {
-                          node(label: "!Windows"){
-                            deleteDir()
-                            unstash "Source"
-                            sh "${env.TOX} -e docs"
-                            dir('.tox/dist/') {
-                              stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-                            }
-                          }
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "docs"
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    dir('.tox/dist/') {
+                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                                    }
+                                }
+                                runner.run()
 
+                            }
                         },
                         "MyPy": {
-                          node(label: "!Windows"){
-                            deleteDir()
-                            unstash "Source"
-                            sh "${env.TOX} -e mypy"
-                            junit 'mypy.xml'
-                          }
+                            script {
+                                def runner = new Tox(this)
+                                runner.env = "mypy"
+                                runner.windows = false
+                                runner.stash = "Source"
+                                runner.label = "!Windows"
+                                runner.post = {
+                                    junit 'mypy.xml'
+                                }
+                                runner.run()
 
+                            }
                         }
                 )
             }
 
             post {
-              success {
-                deleteDir()
-                unstash "HTML Documentation"
-                sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
-                archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-              }
+                success {
+                    deleteDir()
+                    unstash "HTML Documentation"
+                    sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
+                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
+                }
             }
         }
 
@@ -111,7 +131,7 @@ pipeline {
                                         call .env/Scripts/activate.bat
                                         pip install --upgrade pip setuptools
                                         pip install -r requirements.txt
-                                        python setup.py bdist_wheel --universal
+                                        python setup.py bdist_wheel
                                     """
                                 archiveArtifacts artifacts: "dist/**", fingerprint: true
                             }
@@ -141,10 +161,7 @@ pipeline {
                             }
                         },
                         "Source Release": {
-                            deleteDir()
-                            unstash "Source"
-                            sh "${env.PYTHON3} setup.py sdist"
-                            archiveArtifacts artifacts: "dist/**", fingerprint: true
+                            createSourceRelease(env.PYTHON3, "Source")
                         }
                 )
             }
@@ -157,9 +174,7 @@ pipeline {
             }
 
             steps {
-                deleteDir()
-                unstash "msi"
-                sh "rsync -rv ./ \"${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/\""
+                deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
                 input("Deploy to production?")
             }
         }
@@ -171,24 +186,19 @@ pipeline {
             }
 
             steps {
-                deleteDir()
-                unstash "msi"
-                sh "rsync -rv ./ ${env.SCCM_UPLOAD_FOLDER}/"
+                deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
             }
 
             post {
                 success {
-                    git url: 'https://github.com/UIUCLibrary/sccm_deploy_message_generator.git'
-                    unstash "Deployment"
-                    sh """${env.PYTHON3} -m venv .env
-                          . .env/bin/activate
-                          pip install --upgrade pip
-                          pip install setuptools --upgrade
-                          python setup.py install
-                          deploymessage deployment.yml --save=deployment_request.txt
-                      """
-                    archiveArtifacts artifacts: "deployment_request.txt"
-                    echo(readFile('deployment_request.txt'))
+                    script{
+                        unstash "Source"
+                        def  deployment_request = requestDeploy this, "deployment.yml"
+                        echo deployment_request
+                        writeFile file: "deployment_request.txt", text: deployment_request
+                        archiveArtifacts artifacts: "deployment_request.txt"
+                    }
+
                 }
             }
         }
@@ -196,38 +206,11 @@ pipeline {
         stage("Update online documentation") {
             agent any
             when {
-              expression {params.UPDATE_DOCS == true }
+                expression { params.UPDATE_DOCS == true }
             }
 
             steps {
-                deleteDir()
-                script {
-                    try {
-                        unstash "HTML Documentation"
-                    } catch (error) { // No docs have been created yet, so generate it
-                        echo "Building documentation"
-                        unstash "Source"
-                        sh "${env.PYTHON3} setup.py build_sphinx"
-                        dir("doc/build"){
-                            stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
-                        }
-                        deleteDir()
-                        unstash "HTML Documentation"
-
-                    }
-
-                    echo "Updating online documentation"
-                    try {
-                        sh("rsync -rv -e \"ssh -i ${env.DCC_DOCS_KEY}\" html/ ${env.DCC_DOCS_SERVER}/${params.URL_SUBFOLDER}/ --delete")
-                    } catch (error) {
-                        echo "Error with uploading docs"
-                        throw error
-                    }
-                    echo "Archiving deployed docs"
-                    sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
-                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-
-                }
+                updateOnlineDocs(params.URL_SUBFOLDER)
             }
         }
     }
