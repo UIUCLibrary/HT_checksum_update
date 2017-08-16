@@ -81,8 +81,8 @@ pipeline {
                                 runner.stash = "Source"
                                 runner.label = "!Windows"
                                 runner.post = {
-                                    dir('.tox/dist/') {
-                                        stash includes: 'html/**', name: "HTML Documentation", useDefaultExcludes: false
+                                    dir('.tox/dist/html/') {
+                                        stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
                                     }
                                 }
                                 runner.run()
@@ -106,14 +106,6 @@ pipeline {
                 )
             }
 
-            post {
-                success {
-                    deleteDir()
-                    unstash "HTML Documentation"
-                    sh 'tar -czvf sphinx_html_docs.tar.gz -C html .'
-                    archiveArtifacts artifacts: 'sphinx_html_docs.tar.gz'
-                }
-            }
         }
 
         stage("Packaging") {
@@ -210,7 +202,7 @@ pipeline {
             }
 
             steps {
-                updateOnlineDocs(params.URL_SUBFOLDER)
+                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
             }
         }
     }
