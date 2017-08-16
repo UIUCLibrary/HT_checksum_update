@@ -210,7 +210,7 @@ pipeline {
             }
 
             steps {
-                updateOnlineDocs(params.URL_SUBFOLDER)
+                updateOnlineDocs(params.URL_SUBFOLDER, "HTML Documentation")
             }
         }
     }
