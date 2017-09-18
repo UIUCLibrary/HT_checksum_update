@@ -25,7 +25,6 @@ pipeline {
                 deleteDir()
                 checkout scm
                 stash includes: '**', name: "Source", useDefaultExcludes: false
-                stash includes: 'deployment.yml', name: "Deployment"
             }
 
         }
