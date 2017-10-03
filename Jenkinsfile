@@ -219,7 +219,7 @@ pipeline {
                             bat "devpi upload"
                         }
                     }
-                    bat "devpi test hsw"
+                    bat "devpi test hathichecksumupdater"
                 }
 
             }
