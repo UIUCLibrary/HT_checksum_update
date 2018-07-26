@@ -1,6 +1,15 @@
 @Library("ds-utils")
 import org.ds.*
 
+def PKG_NAME = "unknown"
+def PKG_VERSION = "unknown"
+def DOC_ZIP_FILENAME = "doc.zip"
+def junit_filename = "junit.xml"
+def REPORT_DIR = ""
+def VENV_ROOT = ""
+def VENV_PYTHON = ""
+def VENV_PIP = ""
+
 pipeline {
     agent {
         label "Windows"
@@ -297,49 +306,65 @@ pipeline {
                     }
 
                 }
-            }
-        }
-        stage("Additional tests") {
-            when {
-                expression { params.ADDITIONAL_TESTS == true }
-            }
-
-            steps {
-                parallel(
-                        "Documentation": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "docs"
-                                runner.windows = false
-                                runner.stash = "Source"
-                                runner.label = "!Windows"
-                                runner.post = {
-                                    dir('.tox/dist/html/') {
-                                        stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
-                                    }
-                                }
-                                runner.run()
-
-                            }
-                        },
-                        "MyPy": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "mypy"
-                                runner.windows = false
-                                runner.stash = "Source"
-                                runner.label = "!Windows"
-                                runner.post = {
-                                    junit 'mypy.xml'
-                                }
-                                runner.run()
-
-                            }
+                stage("MyPy"){
+                    when{
+                        equals expected: true, actual: params.ADDITIONAL_TESTS
+                    }
+                    steps{
+                        dir("source") {
+                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_checksum --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
                         }
-                )
+                    }
+                    post{
+                        always {
+                            junit "junit-${env.NODE_NAME}-mypy.xml"
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                        }
+                    }
+                }
             }
-
         }
+        // stage("Additional tests") {
+        //     when {
+        //         expression { params.ADDITIONAL_TESTS == true }
+        //     }
+
+        //     steps {
+        //         parallel(
+        //                 "Documentation": {
+        //                     script {
+        //                         def runner = new Tox(this)
+        //                         runner.env = "docs"
+        //                         runner.windows = false
+        //                         runner.stash = "Source"
+        //                         runner.label = "!Windows"
+        //                         runner.post = {
+        //                             dir('.tox/dist/html/') {
+        //                                 stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
+        //                             }
+        //                         }
+        //                         runner.run()
+
+        //                     }
+        //                 },
+        //                 "MyPy": {
+        //                     script {
+        //                         def runner = new Tox(this)
+        //                         runner.env = "mypy"
+        //                         runner.windows = false
+        //                         runner.stash = "Source"
+        //                         runner.label = "!Windows"
+        //                         runner.post = {
+        //                             junit 'mypy.xml'
+        //                         }
+        //                         runner.run()
+
+        //                     }
+        //                 }
+        //         )
+        //     }
+
+        // }
 
         stage("Packaging") {
             when {
