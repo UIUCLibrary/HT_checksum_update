@@ -324,98 +324,117 @@ pipeline {
                 }
             }
         }
-        // stage("Additional tests") {
+        stage("Packaging") {
+            when {
+                expression { params.DEPLOY_DEVPI == true || params.RELEASE != "None"}
+            }
+            parallel {
+                stage("Source and Wheel formats"){
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                        }
+                        
+                    }
+                    post{
+                        success{
+                            dir("dist"){
+                                archiveArtifacts artifacts: "*.whl", fingerprint: true
+                                archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+                            }
+                        }
+                    }
+                }
+                stage("Windows CX_Freeze MSI"){
+                    agent{
+                        node {
+                            label "Windows"
+                        }
+                    }
+                    options {
+                        skipDefaultCheckout true
+                    }
+                    steps{
+                        bat "dir"
+                        deleteDir()
+                        bat "dir"
+                        checkout scm
+                        bat "dir /s / B"
+                        bat "${tool 'CPython-3.6'} -m venv venv"
+                        bat "venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
+                        bat "venv\\Scripts\\pip.exe install -U setuptools"
+                        bat "venv\\Scripts\\pip.exe install -r requirements.txt"
+                        bat "venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
+                        // bat "make freeze"
+
+
+                    }
+                    post{
+                        success{
+                            dir("dist") {
+                                stash includes: "*.msi", name: "msi"
+                                archiveArtifacts artifacts: "*.msi", fingerprint: true
+                            }
+                        }
+                        cleanup{
+                            bat "dir"
+                            deleteDir()
+                            bat "dir"
+                        }
+                    }
+                }
+            }
+        }
+        // stage("Packaging") {
         //     when {
-        //         expression { params.ADDITIONAL_TESTS == true }
+        //         expression { params.PACKAGE == true }
         //     }
 
         //     steps {
         //         parallel(
-        //                 "Documentation": {
-        //                     script {
-        //                         def runner = new Tox(this)
-        //                         runner.env = "docs"
-        //                         runner.windows = false
-        //                         runner.stash = "Source"
-        //                         runner.label = "!Windows"
-        //                         runner.post = {
-        //                             dir('.tox/dist/html/') {
-        //                                 stash includes: '**', name: "HTML Documentation", useDefaultExcludes: false
-        //                             }
+        //                 // "Windows Wheel": {
+        //                 //     node(label: "Windows") {
+        //                 //         deleteDir()
+        //                 //         unstash "Source"
+        //                 //         bat """${env.PYTHON3} -m venv .env
+        //                 //                 call .env/Scripts/activate.bat
+        //                 //                 pip install --upgrade pip setuptools
+        //                 //                 pip install -r requirements.txt
+        //                 //                 python setup.py bdist_wheel
+        //                 //             """
+        //                 //         archiveArtifacts artifacts: "dist/**", fingerprint: true
+        //                 //     }
+        //                 // },
+        //                 "Windows CX_Freeze MSI": {
+        //                     node(label: "Windows") {
+        //                         deleteDir()
+        //                         unstash "Source"
+        //                         bat """${env.PYTHON3} -m venv .env
+        //                                call .env/Scripts/activate.bat
+        //                                pip install -r requirements.txt
+        //                                python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
+        //                                call .env/Scripts/deactivate.bat
+        //                             """
+        //                         bat "build\\msi\\udhtchecksum.exe --pytest"
+        //                         dir("dist") {
+        //                             stash includes: "*.msi", name: "msi"
         //                         }
-        //                         runner.run()
 
+        //                     }
+        //                     node(label: "Windows") {
+        //                         deleteDir()
+        //                         git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
+        //                         unstash "msi"
+        //                         bat "call validate.bat -i"
+        //                         archiveArtifacts artifacts: "*.msi", fingerprint: true
         //                     }
         //                 },
-        //                 "MyPy": {
-        //                     script {
-        //                         def runner = new Tox(this)
-        //                         runner.env = "mypy"
-        //                         runner.windows = false
-        //                         runner.stash = "Source"
-        //                         runner.label = "!Windows"
-        //                         runner.post = {
-        //                             junit 'mypy.xml'
-        //                         }
-        //                         runner.run()
-
-        //                     }
+        //                 "Source Release": {
+        //                     createSourceRelease(env.PYTHON3, "Source")
         //                 }
         //         )
         //     }
-
         // }
-
-        stage("Packaging") {
-            when {
-                expression { params.PACKAGE == true }
-            }
-
-            steps {
-                parallel(
-                        "Windows Wheel": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
-                                        call .env/Scripts/activate.bat
-                                        pip install --upgrade pip setuptools
-                                        pip install -r requirements.txt
-                                        python setup.py bdist_wheel
-                                    """
-                                archiveArtifacts artifacts: "dist/**", fingerprint: true
-                            }
-                        },
-                        "Windows CX_Freeze MSI": {
-                            node(label: "Windows") {
-                                deleteDir()
-                                unstash "Source"
-                                bat """${env.PYTHON3} -m venv .env
-                                       call .env/Scripts/activate.bat
-                                       pip install -r requirements.txt
-                                       python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi
-                                       call .env/Scripts/deactivate.bat
-                                    """
-                                bat "build\\msi\\udhtchecksum.exe --pytest"
-                                dir("dist") {
-                                    stash includes: "*.msi", name: "msi"
-                                }
-
-                            }
-                            node(label: "Windows") {
-                                deleteDir()
-                                git url: 'https://github.com/UIUCLibrary/ValidateMSI.git'
-                                unstash "msi"
-                                bat "call validate.bat -i"
-                                archiveArtifacts artifacts: "*.msi", fingerprint: true
-                            }
-                        },
-                        "Source Release": {
-                            createSourceRelease(env.PYTHON3, "Source")
-                        }
-                )
-            }
-        }
 
         stage("Deploy - Staging") {
             agent any
