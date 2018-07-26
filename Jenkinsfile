@@ -157,6 +157,50 @@ pipeline {
         //         )
         //     }
         // }
+        stage("Build"){
+            stages{
+                stage("Python Package"){
+                    steps {
+                        tee("logs/build.log") {
+                            dir("source"){
+                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
+                            }
+
+                        }
+                    }
+                }
+                stage("Docs"){
+                    steps{
+                        echo "Building docs on ${env.NODE_NAME}"
+                        tee("logs/build_sphinx.log") {
+                            dir("build/lib"){
+                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+                            }
+                        }
+                    }
+                    post{
+                        always {
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
+                                    }
+                                }
+                            }
+                        }
+                        success{
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+                            dir("${WORKSPACE}/dist"){
+                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
         stage("Tests") {
 
             parallel {
@@ -187,6 +231,17 @@ pipeline {
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                         }
                     }
+                }
+                stage("Documentation"){
+                    when{
+                        equals expected: true, actual: params.ADDITIONAL_TESTS
+                    }
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                        }
+                    }
+
                 }
             }
         }
