@@ -551,46 +551,64 @@ pipeline {
                 }
             }
         }
-        // stage("Deploying to Devpi") {
-        //     agent {
-        //         node {
-        //             label 'Windows'
-        //         }
-        //     }
-        //     when {
-        //         expression { params.DEPLOY_DEVPI == true }
-        //     }
-        //     steps {
-        //         deleteDir()
-        //         unstash "Source"
-        //         bat "devpi use http://devpy.library.illinois.edu"
-        //         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-        //             bat "devpi login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-        //             bat "devpi use /${DEVPI_USERNAME}/${env.BRANCH_NAME}"
-        //             script {
-        //                 try{
-        //                     bat "devpi upload --with-docs"
-
-        //                 } catch (exc) {
-        //                     echo "Unable to upload to devpi with docs. Trying without"
-        //                     bat "devpi upload"
-        //                 }
-        //             }
-        //             bat "devpi test hathichecksumupdater"
-        //         }
-
-        //     }
-        // }
-        stage("Update online documentation") {
-            agent any
+         stage("Deploy to SCCM") {
             when {
-                expression { params.UPDATE_DOCS == true }
+                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
             }
 
             steps {
-                updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
+                node("Linux"){
+                    unstash "msi"
+                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+                    input("Push a SCCM release?")
+                    deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                }
+
+            }
+            post {
+                success {
+                    script{
+                        def  deployment_request = requestDeploy this, "deployment.yml"
+                        echo deployment_request
+                        writeFile file: "deployment_request.txt", text: deployment_request
+                        archiveArtifacts artifacts: "deployment_request.txt"
+                    }
+                }
             }
         }
+        stage("Release to DevPi production") {
+            when {
+                expression { params.RELEASE != "None" && env.BRANCH_NAME == "master" }
+            }
+            steps {
+                script {
+                    try{
+                        timeout(30) {
+                            input "Release ${PKG_NAME} ${PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${PKG_NAME}/${PKG_VERSION}) to DevPi Production? "
+                        }
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        }
+
+                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                        bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} production/release"
+                    } catch(err){
+                        echo "User response timed out. Packages not deployed to DevPi Production."
+                    }
+                }
+            }
+        }
+        
+        // stage("Update online documentation") {
+        //     agent any
+        //     when {
+        //         expression { params.UPDATE_DOCS == true }
+        //     }
+
+        //     steps {
+        //         updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
+        //     }
+        // }
     }
     post{
         cleanup{
