@@ -598,6 +598,40 @@ pipeline {
                 }
             }
         }
+        stage("Update online documentation") {
+            agent any
+            when {
+                expression { params.UPDATE_DOCS == true }
+            }
+            steps {
+                dir("build/docs/html/"){
+                    bat "dir /s /B"
+                    sshPublisher(
+                        publishers: [
+                            sshPublisherDesc(
+                                configName: 'apache-ns - lib-dccuser-updater', 
+                                sshLabel: [label: 'Linux'], 
+                                transfers: [sshTransfer(excludes: '', 
+                                execCommand: '', 
+                                execTimeout: 120000, 
+                                flatten: false, 
+                                makeEmptyDirs: false, 
+                                noDefaultExcludes: false, 
+                                patternSeparator: '[, ]+', 
+                                remoteDirectory: "${params.URL_SUBFOLDER}", 
+                                remoteDirectorySDF: false, 
+                                removePrefix: '', 
+                                sourceFiles: '**')], 
+                            usePromotionTimestamp: false, 
+                            useWorkspaceInPromotion: false, 
+                            verbose: true
+                            )
+                        ]
+                    )
+                }
+                // updateOnlineDocs stash_name: "HTML Documentation", url_subdomain: params.URL_SUBFOLDER
+            }
+        }
         
         // stage("Update online documentation") {
         //     agent any
