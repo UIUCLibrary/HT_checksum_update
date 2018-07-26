@@ -13,7 +13,7 @@ pipeline {
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
-        // checkoutToSubdirectory("source")
+        checkoutToSubdirectory("source")
     }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
@@ -26,54 +26,159 @@ pipeline {
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_checksum_updater", description: 'The directory that the docs should be saved under')
     }
     stages {
-
-        stage("Cloning Source") {
-            agent any
-
-            steps {
-                deleteDir()
-                checkout scm
-                stash includes: '**', name: "Source", useDefaultExcludes: false
-            }
-
-        }
-
-        stage("Unit tests") {
-            when {
-                expression { params.UNIT_TESTS == true }
-            }
-            steps {
-                parallel(
-                        "Windows": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "pytest"
-                                runner.windows = true
-                                runner.stash = "Source"
-                                runner.label = "Windows"
-                                runner.post = {
-                                    junit 'reports/junit-*.xml'
-                                }
-                                runner.run()
+        stage("Configure") {
+            stages{
+                stage("Purge all existing data in workspace"){
+                    when{
+                        equals expected: true, actual: params.FRESH_WORKSPACE
+                    }
+                    steps {
+                        deleteDir()
+                        bat "dir"
+                        echo "Cloning source"
+                        dir("source"){
+                            checkout scm
+                        }
+                    }
+                    post{
+                        success {
+                            bat "dir /s /B"
+                        }
+                    }
+                }
+                stage("Stashing important files for later"){
+                    steps{
+                        dir("source"){
+                            stash includes: 'deployment.yml', name: "Deployment"
+                        }
+                    }
+                }
+                stage("Cleanup extra dirs"){
+                    steps{
+                        dir("reports"){
+                            deleteDir()
+                            echo "Cleaned out reports directory"
+                            bat "dir"
+                        }
+                        dir("dist"){
+                            deleteDir()
+                            echo "Cleaned out dist directory"
+                            bat "dir"
+                        }
+                        dir("build"){
+                            deleteDir()
+                            echo "Cleaned out build directory"
+                            bat "dir"
+                        }
+                    }
+                }
+                stage("Creating virtualenv for building"){
+                    steps{
+                        bat "${tool 'CPython-3.6'} -m venv venv"
+                        script {
+                            try {
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip"
                             }
-                        },
-                        "Linux": {
-                            script {
-                                def runner = new Tox(this)
-                                runner.env = "pytest"
-                                runner.windows = false
-                                runner.stash = "Source"
-                                runner.label = "!Windows"
-                                runner.post = {
-                                    junit 'reports/junit-*.xml'
+                            catch (exc) {
+                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+                            }                           
+                        }    
+                        bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
+                        
+                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
+                            bat "venv\\Scripts\\pip.exe list"
+                        }
+                    }
+                    post{
+                        always{
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
+                                    }
                                 }
-                                runner.run()
                             }
                         }
-                )
+                        failure {
+                            deleteDir()
+                        }
+                    }
+                }
             }
         }
+        // stage("Cloning Source") {
+        //     agent any
 
+        //     steps {
+        //         deleteDir()
+        //         checkout scm
+        //         stash includes: '**', name: "Source", useDefaultExcludes: false
+        //     }
+
+        // }
+
+        // stage("Unit tests") {
+        //     when {
+        //         expression { params.UNIT_TESTS == true }
+        //     }
+        //     steps {
+        //         parallel(
+        //                 "Windows": {
+        //                     script {
+        //                         def runner = new Tox(this)
+        //                         runner.env = "pytest"
+        //                         runner.windows = true
+        //                         runner.stash = "Source"
+        //                         runner.label = "Windows"
+        //                         runner.post = {
+        //                             junit 'reports/junit-*.xml'
+        //                         }
+        //                         runner.run()
+        //                     }
+        //                 },
+        //                 "Linux": {
+        //                     script {
+        //                         def runner = new Tox(this)
+        //                         runner.env = "pytest"
+        //                         runner.windows = false
+        //                         runner.stash = "Source"
+        //                         runner.label = "!Windows"
+        //                         runner.post = {
+        //                             junit 'reports/junit-*.xml'
+        //                         }
+        //                         runner.run()
+        //                     }
+        //                 }
+        //         )
+        //     }
+        // }
+        stage("Tests") {
+
+            parallel {
+                stage("PyTest"){
+                    when {
+                        equals expected: true, actual: params.UNIT_TESTS
+                    }
+                    steps{
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=MedusaPackager" //  --basetemp={envtmpdir}"
+                        }
+
+                    }
+                    post {
+                        always{
+                            junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                        }
+                    }
+                }
+            }
+        }
         stage("Additional tests") {
             when {
                 expression { params.ADDITIONAL_TESTS == true }
