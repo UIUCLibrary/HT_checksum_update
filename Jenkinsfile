@@ -109,6 +109,60 @@ pipeline {
                         }
                     }
                 }
+                stage("Setting variables used by the rest of the build"){
+                    steps{
+                        
+                        script {
+                            // Set up the reports directory variable 
+                            REPORT_DIR = "${pwd tmp: true}\\reports"
+                           dir("source"){
+                                PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
+                                PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
+                           }
+                        }
+
+                        script{
+                            DOC_ZIP_FILENAME = "${PKG_NAME}-${PKG_VERSION}.doc.zip"
+                            junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
+                        }
+
+
+                        
+                        
+                        script{
+                            VENV_ROOT = "${WORKSPACE}\\venv\\"
+
+                            VENV_PYTHON = "${WORKSPACE}\\venv\\Scripts\\python.exe"
+                            bat "${VENV_PYTHON} --version"
+
+                            VENV_PIP = "${WORKSPACE}\\venv\\Scripts\\pip.exe"
+                            bat "${VENV_PIP} --version"
+                        }
+
+                        
+                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {    
+                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        }
+                        bat "dir"
+                    }
+                    post{
+                        always{
+                            bat "dir /s / B"
+                            echo """Name                            = ${PKG_NAME}
+        Version                         = ${PKG_VERSION}
+        Report Directory                = ${REPORT_DIR}
+        documentation zip file          = ${DOC_ZIP_FILENAME}
+        Python virtual environment path = ${VENV_ROOT}
+        VirtualEnv Python executable    = ${VENV_PYTHON}
+        VirtualEnv Pip executable       = ${VENV_PIP}
+        junit_filename                  = ${junit_filename}
+        """           
+
+                        }
+                        
+                    }
+                }
             }
         }
         // stage("Cloning Source") {
