@@ -29,8 +29,9 @@ pipeline {
     }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
-        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
-        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
+        booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
+        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
+        booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -272,7 +273,7 @@ pipeline {
             parallel {
                 stage("PyTest"){
                     when {
-                        equals expected: true, actual: params.UNIT_TESTS
+                        equals expected: true, actual: params.TEST_RUN_PYTEST
                     }
                     steps{
                         dir("source"){
@@ -300,7 +301,7 @@ pipeline {
                 }
                 stage("Documentation"){
                     when{
-                        equals expected: true, actual: params.ADDITIONAL_TESTS
+                        equals expected: true, actual: params.TEST_RUN_DOCTEST
                     }
                     steps{
                         dir("source"){
@@ -311,7 +312,7 @@ pipeline {
                 }
                 stage("MyPy"){
                     when{
-                        equals expected: true, actual: params.ADDITIONAL_TESTS
+                        equals expected: true, actual: params.TEST_RUN_MYPY
                     }
                     steps{
                         dir("source") {
