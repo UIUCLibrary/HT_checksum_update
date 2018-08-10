@@ -651,7 +651,6 @@ pipeline {
     }
     post{
         cleanup{
-
             script {
                 if(fileExists('source/setup.py')){
                     dir("source"){
@@ -677,6 +676,9 @@ pipeline {
                 }
             }
 //            bat "dir /s / B"
+        }
+        failure{
+            echo "Pipeline failed. If the problem is old cached data, you might need to purge the testing environment. Try manually running the pipeline again with the parameter FRESH_WORKSPACE checked."
         }
     }
 }
