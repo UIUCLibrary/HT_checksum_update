@@ -24,10 +24,15 @@ pipeline {
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
     }
+    triggers {
+        cron('@daily')
+    }
     parameters {
+        booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
-        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run automated unit tests")
-        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
+        booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
+        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
+        booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -95,7 +100,8 @@ pipeline {
                         }    
                         bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
                         bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
-                        
+                        bat "venv\\Scripts\\pip.exe install pluggy>=0.7"
+
                         tee("logs/pippackages_venv_${NODE_NAME}.log") {
                             bat "venv\\Scripts\\pip.exe list"
                         }
@@ -269,7 +275,7 @@ pipeline {
             parallel {
                 stage("PyTest"){
                     when {
-                        equals expected: true, actual: params.UNIT_TESTS
+                        equals expected: true, actual: params.TEST_RUN_PYTEST
                     }
                     steps{
                         dir("source"){
@@ -297,7 +303,7 @@ pipeline {
                 }
                 stage("Documentation"){
                     when{
-                        equals expected: true, actual: params.ADDITIONAL_TESTS
+                        equals expected: true, actual: params.TEST_RUN_DOCTEST
                     }
                     steps{
                         dir("source"){
@@ -308,7 +314,7 @@ pipeline {
                 }
                 stage("MyPy"){
                     when{
-                        equals expected: true, actual: params.ADDITIONAL_TESTS
+                        equals expected: true, actual: params.TEST_RUN_MYPY
                     }
                     steps{
                         dir("source") {
@@ -646,7 +652,6 @@ pipeline {
     }
     post{
         cleanup{
-
             script {
                 if(fileExists('source/setup.py')){
                     dir("source"){
@@ -672,6 +677,9 @@ pipeline {
                 }
             }
 //            bat "dir /s / B"
+        }
+        failure{
+            echo "Pipeline failed. If the problem is old cached data, you might need to purge the testing environment. Try manually running the pipeline again with the parameter FRESH_WORKSPACE checked."
         }
     }
 }
