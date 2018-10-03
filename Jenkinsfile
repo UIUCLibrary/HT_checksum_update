@@ -21,7 +21,7 @@ pipeline {
     }
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
-        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
+//        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
     }
     triggers {
@@ -36,11 +36,15 @@ pipeline {
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to production devpi on https://devpi.library.illinois.edu/production/release. Release Branch Only")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_checksum_updater", description: 'The directory that the docs should be saved under')
     }
     stages {
         stage("Configure") {
+            options{
+                timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
+            }
             stages{
                 stage("Purge all existing data in workspace"){
                     when{
@@ -229,6 +233,9 @@ pipeline {
         stage("Build"){
             stages{
                 stage("Python Package"){
+                    options{
+                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                    }
                     steps {
                         tee("logs/build.log") {
                             dir("source"){
@@ -239,6 +246,9 @@ pipeline {
                     }
                 }
                 stage("Docs"){
+                    options{
+                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                    }
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
                         tee("logs/build_sphinx.log") {
@@ -274,6 +284,9 @@ pipeline {
 
             parallel {
                 stage("PyTest"){
+                    options{
+                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                    }
                     when {
                         equals expected: true, actual: params.TEST_RUN_PYTEST
                     }
@@ -305,6 +318,9 @@ pipeline {
                     when{
                         equals expected: true, actual: params.TEST_RUN_DOCTEST
                     }
+                    options{
+                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                    }
                     steps{
                         dir("source"){
                             bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
@@ -315,6 +331,9 @@ pipeline {
                 stage("MyPy"){
                     when{
                         equals expected: true, actual: params.TEST_RUN_MYPY
+                    }
+                    options{
+                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps{
                         dir("source") {
@@ -336,6 +355,9 @@ pipeline {
             }
             parallel {
                 stage("Source and Wheel formats"){
+                    options{
+                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                    }
                     steps{
                         dir("source"){
                             bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
@@ -359,6 +381,7 @@ pipeline {
                     }
                     options {
                         skipDefaultCheckout true
+                        timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps{
                         bat "dir"
@@ -467,6 +490,9 @@ pipeline {
 //            steps {
             parallel {
                 stage("Source Distribution: .tar.gz") {
+                    options{
+                       timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
+                    }
                     steps {
                         echo "Testing Source tar.gz package in devpi"
                         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
@@ -491,6 +517,9 @@ pipeline {
 
                 }
                 stage("Source Distribution: .zip") {
+                    options{
+                       timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
+                    }
                     steps {
                         echo "Testing Source zip package in devpi"
                         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
@@ -519,6 +548,7 @@ pipeline {
                     }
                     options {
                         skipDefaultCheckout()
+                        timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps {
                         echo "Testing Whl package in devpi"
@@ -566,8 +596,18 @@ pipeline {
                 node("Linux"){
                     unstash "msi"
                     deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-                    input("Push a SCCM release?")
-                    deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                    script{
+                        try{
+                            timeout(30) {
+                                input("Push a SCCM release?")
+                            }
+                            deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                        }
+                        catch(err){
+                            echo "Push a SCCM release timed out"
+                        }
+                    }
+
                 }
 
             }
@@ -583,8 +623,13 @@ pipeline {
             }
         }
         stage("Release to DevPi production") {
+
+
             when {
-                expression { params.RELEASE != "None" && env.BRANCH_NAME == "master" }
+                allOf{
+                  equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                  branch "master"
+                }
             }
             steps {
                 script {
@@ -608,6 +653,9 @@ pipeline {
             agent any
             when {
                 expression { params.UPDATE_DOCS == true }
+            }
+            options{
+               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
             }
             steps {
                 dir("build/docs/html/"){
