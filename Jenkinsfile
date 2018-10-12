@@ -114,10 +114,11 @@ pipeline {
                         always{
                             dir("logs"){
                                 script{
-                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
+                                    def pip_regex = '**/pippackages_venv_*.log'
+                                    def log_files = findFiles glob: "${pip_regex}"
+                                    archiveArtifacts artifacts: "${pip_regex}"
                                     log_files.each { log_file ->
                                         echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
                                         bat "del ${log_file}"
                                     }
                                 }
@@ -259,15 +260,16 @@ pipeline {
                     }
                     post{
                         always {
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
+                            archiveArtifacts artifacts: "logs/build_sphinx.log"
+//                            dir("logs"){
+//                                script{
+//                                    def log_files = findFiles glob: '**/*.log'
+//                                    log_files.each { log_file ->
+//                                        echo "Found ${log_file}"
+//
+//                                        bat "del ${log_file}"
+//                                    }
+//                                }
                             }
                         }
                         success{
