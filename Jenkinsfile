@@ -95,11 +95,11 @@ pipeline {
                         bat "${tool 'CPython-3.6'} -m venv venv"
                         script {
                             try {
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
                             }
                             catch (exc) {
                                 bat "${tool 'CPython-3.6'} -m venv venv"
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1 --no-cache-dir"
                             }                           
                         }    
                         bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
@@ -392,7 +392,7 @@ pipeline {
                         checkout scm
                         bat "dir /s / B"
                         bat "${tool 'CPython-3.6'} -m venv venv"
-                        bat "venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
+                        bat "venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
                         bat "venv\\Scripts\\pip.exe install -U setuptools"
                         bat "venv\\Scripts\\pip.exe install -r requirements.txt"
                         bat "venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
