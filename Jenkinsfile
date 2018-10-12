@@ -271,7 +271,7 @@ pipeline {
 //                                    }
 //                                }
                             }
-                        }
+//                        }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             dir("${WORKSPACE}/dist"){
