@@ -79,6 +79,11 @@ pipeline {
                             echo "Cleaned out dist directory"
                             bat "dir"
                         }
+                        dir("logs"){
+                            deleteDir()
+                            echo "Cleaned out logs directory"
+                            bat "dir"
+                        }
                         dir("build"){
                             deleteDir()
                             echo "Cleaned out build directory"
@@ -102,25 +107,20 @@ pipeline {
                         bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
                         bat "venv\\Scripts\\pip.exe install pluggy>=0.7"
 
-                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
-                            bat "venv\\Scripts\\pip.exe list"
-                        }
+//                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
+//                            bat "venv\\Scripts\\pip.exe list"
+//                        }
                     }
                     post{
-                        always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                        success{
+                            bat "venv\\Scripts\\pip.exe list > ${WORKSPACE}\\logs\\pippackages_venv_${NODE_NAME}.log"
+                            archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log"
                         }
                         failure {
                             deleteDir()
+                        }
+                        cleanup{
+                            cleanWs(patterns: [[pattern: 'logs/pippackages_venv_*.log', type: 'INCLUDE']])
                         }
                     }
                 }
@@ -180,91 +180,44 @@ pipeline {
                 }
             }
         }
-        // stage("Cloning Source") {
-        //     agent any
-
-        //     steps {
-        //         deleteDir()
-        //         checkout scm
-        //         stash includes: '**', name: "Source", useDefaultExcludes: false
-        //     }
-
-        // }
-
-        // stage("Unit tests") {
-        //     when {
-        //         expression { params.UNIT_TESTS == true }
-        //     }
-        //     steps {
-        //         parallel(
-        //                 "Windows": {
-        //                     script {
-        //                         def runner = new Tox(this)
-        //                         runner.env = "pytest"
-        //                         runner.windows = true
-        //                         runner.stash = "Source"
-        //                         runner.label = "Windows"
-        //                         runner.post = {
-        //                             junit 'reports/junit-*.xml'
-        //                         }
-        //                         runner.run()
-        //                     }
-        //                 },
-        //                 "Linux": {
-        //                     script {
-        //                         def runner = new Tox(this)
-        //                         runner.env = "pytest"
-        //                         runner.windows = false
-        //                         runner.stash = "Source"
-        //                         runner.label = "!Windows"
-        //                         runner.post = {
-        //                             junit 'reports/junit-*.xml'
-        //                         }
-        //                         runner.run()
-        //                     }
-        //                 }
-        //         )
-        //     }
-        // }
-        stage("Build"){
+        stage("Building") {
             stages{
-                stage("Python Package"){
+                stage("Building Python Package"){
                     steps {
-                        tee("logs/build.log") {
-                            dir("source"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
-                            }
+                        dir("source"){
+                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
+                        }
 
+                    }
+                    post{
+                        always{
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build.log']]
+                            archiveArtifacts artifacts: "logs/build.log"
+                        }
+                        failure{
+                            echo "Failed to build Python package"
                         }
                     }
                 }
-                stage("Docs"){
-                    steps{
+                stage("Building Sphinx Documentation"){
+                    steps {
                         echo "Building docs on ${env.NODE_NAME}"
-                        tee("logs/build_sphinx.log") {
-                            dir("build/lib"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
-                            }
+                        dir("source"){
+                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
                     }
                     post{
                         always {
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
+                            archiveArtifacts artifacts: 'logs/build_sphinx.log'
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            dir("${WORKSPACE}/dist"){
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
-                            }
+                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                            stash includes: 'build/docs/html/**', name: 'docs'
+                        }
+                        failure{
+                            echo "Failed to build Python package"
                         }
                     }
                 }
@@ -635,20 +588,9 @@ pipeline {
                         ]
                     )
                 }
-                // updateOnlineDocs stash_name: "HTML Documentation", url_subdomain: params.URL_SUBFOLDER
             }
         }
         
-        // stage("Update online documentation") {
-        //     agent any
-        //     when {
-        //         expression { params.UPDATE_DOCS == true }
-        //     }
-
-        //     steps {
-        //         updateOnlineDocs url_subdomain: params.URL_SUBFOLDER, stash_name: "HTML Documentation"
-        //     }
-        // }
     }
     post{
         cleanup{
@@ -676,7 +618,6 @@ pipeline {
                     echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
             }
-//            bat "dir /s / B"
         }
         failure{
             echo "Pipeline failed. If the problem is old cached data, you might need to purge the testing environment. Try manually running the pipeline again with the parameter FRESH_WORKSPACE checked."
