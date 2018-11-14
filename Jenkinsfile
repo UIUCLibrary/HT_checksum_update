@@ -228,7 +228,7 @@ pipeline {
 //                                        bat "del ${log_file}"
 //                                    }
 //                                }
-                            }
+//                            }
 //                        }
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
                             archiveArtifacts artifacts: 'logs/build_sphinx.log'
