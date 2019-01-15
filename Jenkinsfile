@@ -377,6 +377,12 @@ pipeline {
                             }
                             archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
                         }
+                        cleanup{
+                            cleanWs(
+                                deleteDirs: true,
+                                patterns: [[pattern: '*tmp', type: 'INCLUDE']]
+                            )
+                        }
                     }
                 }
             }
