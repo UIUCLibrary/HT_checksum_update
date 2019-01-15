@@ -536,8 +536,22 @@ pipeline {
 //                            }
 //                        }
                     }
+
+                    post {
+                        success {
+                            echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
+                            script {
+                                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                                    bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                                    bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+                                    bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                                }
+                            }
+                        }
+                    }
                 }
             }
+        }
 
 //                stage("uploading Packge to Devpi") {
 //                    when {
@@ -664,21 +678,10 @@ pipeline {
 //                        }
 //                    }
 
-//                    post {
-//                        success {
-//                            echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
-//                            script {
-//                                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                                    bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                                    bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-//                                    bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
-//                                }
-//                            }
-//                        }
-//                    }
+
 //                }
 //            }
-        }
+//        }
 
 //         stage("Deploy to SCCM") {
 //            when {
