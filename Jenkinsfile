@@ -359,13 +359,15 @@ pipeline {
 //                        bat "dir"
 //                        deleteDir()
 //                        bat "dir"
-                        checkout scm
                         bat "dir /s / B"
                         bat "${tool 'CPython-3.6'}\\python -m venv venv"
-                        bat "venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
-                        bat "venv\\Scripts\\pip.exe install -U setuptools"
-                        bat "venv\\Scripts\\pip.exe install -r requirements.txt"
-                        bat "venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
+                        dir("source"){
+                            checkout scm
+                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
+                            bat "${WORKSPACE}\\venv\\Scripts\\pip.exe install -U setuptools"
+                            bat "${WORKSPACE}\\venv\\Scripts\\pip.exe install -r requirements.txt"
+                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi"
+                        }
                         // bat "make freeze"
 
 
