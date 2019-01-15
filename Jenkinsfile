@@ -346,11 +346,11 @@ pipeline {
                     }
                 }
                 stage("Windows CX_Freeze MSI"){
-                    agent{
-                        node {
-                            label "Windows"
-                        }
-                    }
+//                    agent{
+//                        node {
+//                            label "Windows"
+//                        }
+//                    }
                     options {
 //                        skipDefaultCheckout true
                         timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
@@ -359,14 +359,14 @@ pipeline {
 //                        bat "dir"
 //                        deleteDir()
 //                        bat "dir"
-                        bat "dir /s / B"
-                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
+//                        bat "dir /s / B"
+//                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
                         bat "if not exist dist mkdir dist"
                         dir("source"){
-                            checkout scm
-                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
-                            bat "${WORKSPACE}\\venv\\Scripts\\pip.exe install -U setuptools"
-                            bat "${WORKSPACE}\\venv\\Scripts\\pip.exe install -r requirements.txt"
+//                            checkout scm
+//                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
+//                            bat "${WORKSPACE}\\venv\\Scripts\\pip.exe install -U setuptools"
+//                            bat "${WORKSPACE}\\venv\\Scripts\\pip.exe install -r requirements.txt"
                             bat "${WORKSPACE}\\venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi -d ${WORKSPACE}/dist"
                         }
                         // bat "make freeze"
@@ -380,12 +380,12 @@ pipeline {
                             }
                             archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
                         }
-                        cleanup{
-                            cleanWs(
-                                deleteDirs: true,
-                                patterns: [[pattern: '*tmp', type: 'INCLUDE']]
-                            )
-                        }
+//                        cleanup{
+//                            cleanWs(
+//                                deleteDirs: true,
+//                                patterns: [[pattern: '*tmp', type: 'INCLUDE']]
+//                            )
+//                        }
                     }
                 }
             }
