@@ -297,13 +297,14 @@ pipeline {
                        timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps{
+                        bat "if not exist logs mkdir logs"
                         dir("source") {
-                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_checksum --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_checksum --junit-xml=${WORKSPACE}/logs/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
                         }
                     }
                     post{
                         always {
-                            junit "junit-${env.NODE_NAME}-mypy.xml"
+                            junit "logs/junit-${env.NODE_NAME}-mypy.xml"
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                         }
                     }
