@@ -461,7 +461,7 @@ pipeline {
 
                                 timeout(20){
                                     devpiTest(
-                                        devpiExecutable: "venv36\\Scripts\\devpi.exe",
+                                        devpiExecutable: "venv\\Scripts\\devpi.exe",
                                         url: "https://devpi.library.illinois.edu",
                                         index: "${env.BRANCH_NAME}_staging",
                                         pkgName: "${PKG_NAME}",
