@@ -387,7 +387,7 @@ pipeline {
             }
         }
 
-         stage("Deploy to DevPi Staging") {
+         stage("Deploy to DevPi") {
             when {
                 allOf{
                     anyOf{
