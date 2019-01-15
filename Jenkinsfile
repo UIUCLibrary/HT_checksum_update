@@ -386,41 +386,7 @@ pipeline {
                 }
             }
         }
-        stage("Deploy - Staging") {
-            agent any
-            when {
-                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
-            }
 
-            steps {
-                deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-                input("Deploy to production?")
-            }
-        }
-
-        stage("Deploy - SCCM upload") {
-            agent any
-            when {
-                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
-            }
-
-            steps {
-                deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-            }
-
-            post {
-                success {
-                    script{
-                        unstash "Source"
-                        def  deployment_request = requestDeploy this, "deployment.yml"
-                        echo deployment_request
-                        writeFile file: "deployment_request.txt", text: deployment_request
-                        archiveArtifacts artifacts: "deployment_request.txt"
-                    }
-
-                }
-            }
-        }
          stage("Deploy to DevPi Staging") {
             when {
                 allOf{
@@ -713,65 +679,100 @@ pipeline {
 //            }
         }
 
-         stage("Deploy to SCCM") {
+//         stage("Deploy to SCCM") {
+//            when {
+//                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
+//            }
+//
+//            steps {
+//                node("Linux"){
+//                    unstash "msi"
+//                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+//                    script{
+//                        try{
+//                            timeout(30) {
+//                                input("Push a SCCM release?")
+//                            }
+//                            deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+//                        }
+//                        catch(err){
+//                            echo "Push a SCCM release timed out"
+//                        }
+//                    }
+//
+//                }
+//
+//            }
+//            post {
+//                success {
+//                    script{
+//                        def  deployment_request = requestDeploy this, "deployment.yml"
+//                        echo deployment_request
+//                        writeFile file: "deployment_request.txt", text: deployment_request
+//                        archiveArtifacts artifacts: "deployment_request.txt"
+//                    }
+//                }
+//            }
+//        }
+//        stage("Release to DevPi production") {
+//
+//
+//            when {
+//                allOf{
+//                  equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+//                  branch "master"
+//                }
+//            }
+//            steps {
+//                script {
+//                    try{
+//                        timeout(30) {
+//                            input "Release ${PKG_NAME} ${PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${PKG_NAME}/${PKG_VERSION}) to DevPi Production? "
+//                        }
+//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+//                        }
+//
+//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+//                        bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} production/release"
+//                    } catch(err){
+//                        echo "User response timed out. Packages not deployed to DevPi Production."
+//                    }
+//                }
+//            }
+//        }
+        stage("Deploy - Staging") {
+            agent any
             when {
-                expression { params.RELEASE == "Release_to_devpi_and_sccm"}
+                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
             }
 
             steps {
-                node("Linux"){
-                    unstash "msi"
-                    deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-                    script{
-                        try{
-                            timeout(30) {
-                                input("Push a SCCM release?")
-                            }
-                            deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-                        }
-                        catch(err){
-                            echo "Push a SCCM release timed out"
-                        }
-                    }
-
-                }
-
+                deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+                input("Deploy to production?")
             }
+        }
+
+        stage("Deploy - SCCM upload") {
+            agent any
+            when {
+                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
+            }
+
+            steps {
+                deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+            }
+
             post {
                 success {
                     script{
+                        unstash "Source"
                         def  deployment_request = requestDeploy this, "deployment.yml"
                         echo deployment_request
                         writeFile file: "deployment_request.txt", text: deployment_request
                         archiveArtifacts artifacts: "deployment_request.txt"
                     }
-                }
-            }
-        }
-        stage("Release to DevPi production") {
 
-
-            when {
-                allOf{
-                  equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-                  branch "master"
-                }
-            }
-            steps {
-                script {
-                    try{
-                        timeout(30) {
-                            input "Release ${PKG_NAME} ${PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${PKG_NAME}/${PKG_VERSION}) to DevPi Production? "
-                        }
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        }
-
-                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                        bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} production/release"
-                    } catch(err){
-                        echo "User response timed out. Packages not deployed to DevPi Production."
-                    }
                 }
             }
         }
