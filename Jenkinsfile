@@ -223,17 +223,7 @@ pipeline {
                     post{
                         always {
                             archiveArtifacts artifacts: "logs/build_sphinx.log"
-//                            dir("logs"){
-//                                script{
-//                                    def log_files = findFiles glob: '**/*.log'
-//                                    log_files.each { log_file ->
-//                                        echo "Found ${log_file}"
-//
-//                                        bat "del ${log_file}"
-//                                    }
-//                                }
-//                            }
-//                        }
+
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
                             archiveArtifacts artifacts: 'logs/build_sphinx.log'
                         }
@@ -338,38 +328,19 @@ pipeline {
                     post{
                         success{
                             archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
-////                            dir("dist"){
-//                                archiveArtifacts artifacts: "*.whl", fingerprint: true
-//                                archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
-////                            }
                         }
                     }
                 }
                 stage("Windows CX_Freeze MSI"){
-//                    agent{
-//                        node {
-//                            label "Windows"
-//                        }
-//                    }
+
                     options {
-//                        skipDefaultCheckout true
                         timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps{
-//                        bat "dir"
-//                        deleteDir()
-//                        bat "dir"
-//                        bat "dir /s / B"
-//                        bat "${tool 'CPython-3.6'}\\python -m venv venv"
                         bat "if not exist dist mkdir dist"
                         dir("source"){
-//                            checkout scm
-//                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
-//                            bat "${WORKSPACE}\\venv\\Scripts\\pip.exe install -U setuptools"
-//                            bat "${WORKSPACE}\\venv\\Scripts\\pip.exe install -r requirements.txt"
                             bat "${WORKSPACE}\\venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi -d ${WORKSPACE}/dist"
                         }
-                        // bat "make freeze"
 
 
                     }
@@ -380,12 +351,6 @@ pipeline {
                             }
                             archiveArtifacts artifacts: "dist/*.msi", fingerprint: true
                         }
-//                        cleanup{
-//                            cleanWs(
-//                                deleteDirs: true,
-//                                patterns: [[pattern: '*tmp', type: 'INCLUDE']]
-//                            )
-//                        }
                     }
                 }
             }
@@ -641,10 +606,6 @@ pipeline {
                         [pattern: 'logs', type: 'INCLUDE'],
                         [pattern: 'certs', type: 'INCLUDE'],
                         [pattern: '*tmp', type: 'INCLUDE'],
-//                        [pattern: "source/**/*.dll", type: 'INCLUDE'],
-//                        [pattern: "source/**/*.pyd", type: 'INCLUDE'],
-//                        [pattern: "source/**/*.exe", type: 'INCLUDE'],
-//                        [pattern: "source/**/*.exe", type: 'INCLUDE']
                         ]
                     )
 //                if(fileExists('source/setup.py')){
