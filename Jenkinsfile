@@ -91,9 +91,7 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
                             }                           
                         }    
-                        bat "venv\\Scripts\\pip.exe install sphinx wheel --upgrade-strategy only-if-needed"
-                        bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt"
-                        bat "venv\\Scripts\\pip.exe install pluggy>=0.7"
+                        bat "venv\\Scripts\\pip.exe install sphinx wheel \"pluggy>=0.7\" -r source\\requirements.txt --upgrade-strategy only-if-needed"
 
                     }
                     post{
