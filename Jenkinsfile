@@ -46,7 +46,7 @@ pipeline {
         booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
-        booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to production devpi on https://devpi.library.illinois.edu/production/release. Release Branch Only")
         booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update online documentation")
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_checksum_updater", description: 'The directory that the docs should be saved under')
