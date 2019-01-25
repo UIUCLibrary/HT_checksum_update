@@ -268,11 +268,14 @@ pipeline {
                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                             }
                             steps{
-                                dir("source"){
-                                    bat "sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                                bat "sphinx-build -b doctest docs\\source build\\docs -d build/docs/.doctrees -w logs\\doctest.log"
+                            }
+                            post{
+                                always {
+                                    archiveArtifacts artifacts: 'logs\\doctest.log'
+                                    recordIssues(tools: [sphinxBuild(id: 'Doctest', name: 'DocTest', pattern: 'logs/build_sphinx.log')])
                                 }
                             }
-
                         }
                         stage("MyPy"){
                             when{
