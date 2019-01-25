@@ -378,7 +378,7 @@ pipeline {
                             }
 
                             steps {
-                                bat "${tool 'CPython-3.6'}\\python -m venv venv36"
+                                bat "\"${tool 'CPython-3.6'}\\python\" -m venv venv36"
                                 bat "venv36\\Scripts\\python.exe -m pip install pip --upgrade"
                                 bat "venv36\\Scripts\\pip.exe install devpi --upgrade"
                                 echo "Testing Whl package in devpi"
