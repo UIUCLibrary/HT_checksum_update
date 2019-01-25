@@ -177,7 +177,7 @@ pipeline {
             stages{
                 stage("Install Python Testing Tools"){
                     steps{
-                        bat "pip install tox mypy lxml pytest pytest-cov flake8"
+                        bat "pip install tox mypy lxml pytest pytest-cov flake8 sphinx"
                     }
                 }
                 stage("Run Tests"){
