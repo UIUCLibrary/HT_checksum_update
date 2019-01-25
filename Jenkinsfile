@@ -186,7 +186,7 @@ pipeline {
                     }
                     steps{
                         dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum" //  --basetemp={envtmpdir}"
+                            bat "pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum" //  --basetemp={envtmpdir}"
                         }
 
                     }
@@ -217,7 +217,7 @@ pipeline {
                     }
                     steps{
                         dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                            bat "sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
                         }
                     }
 
@@ -232,7 +232,7 @@ pipeline {
                     steps{
                         bat "if not exist logs mkdir logs"
                         dir("source") {
-                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p hathi_checksum --junit-xml=${WORKSPACE}/logs/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                            bat "mypy -p hathi_checksum --junit-xml=${WORKSPACE}/logs/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
                         }
                     }
                     post{
