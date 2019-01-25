@@ -421,38 +421,38 @@ pipeline {
                 }
             }
         }
-        stage("Deploy - Staging") {
+        stage("Deploy - SCCM"){
             agent any
             when {
-                expression { params.DEPLOY_SCCM == true}
+                equals expected: true, actual: params.DEPLOY_SCCM
             }
+            stages{
+                stage("Deploy - Staging") {
 
-            steps {
-                deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-                input("Deploy to production?")
-            }
-        }
 
-        stage("Deploy - SCCM upload") {
-            agent any
-            when {
-                expression { params.DEPLOY_SCCM == true}
-            }
 
-            steps {
-                deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-            }
-
-            post {
-                success {
-                    script{
-                        unstash "Source"
-                        def  deployment_request = requestDeploy this, "deployment.yml"
-                        echo deployment_request
-                        writeFile file: "deployment_request.txt", text: deployment_request
-                        archiveArtifacts artifacts: "deployment_request.txt"
+                    steps {
+                        deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+                        input("Deploy to production?")
                     }
+                }
 
+                stage("Deploy - SCCM upload") {
+
+                    steps {
+                        deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                    }
+                }
+                stage("Creating Deployment request"){
+                    steps{
+                        script{
+                            unstash "Source"
+                            def  deployment_request = requestDeploy this, "deployment.yml"
+                            echo deployment_request
+                            writeFile file: "deployment_request.txt", text: deployment_request
+                            archiveArtifacts artifacts: "deployment_request.txt"
+                        }
+                    }
                 }
             }
         }
