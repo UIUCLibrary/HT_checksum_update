@@ -75,15 +75,8 @@ pipeline {
                     }
                     steps {
                         deleteDir()
-                        bat "dir"
-                        echo "Cloning source"
                         dir("source"){
                             checkout scm
-                        }
-                    }
-                    post{
-                        success {
-                            bat "dir /s /B"
                         }
                     }
                 }
