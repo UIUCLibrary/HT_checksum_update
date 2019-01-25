@@ -350,7 +350,8 @@ pipeline {
 
                                 timeout(20){
                                     devpiTest(
-                                        devpiExecutable: "venv\\Scripts\\devpi.exe",
+                                        devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
+//                                        devpiExecutable: "venv\\Scripts\\devpi.exe",
                                         url: "https://devpi.library.illinois.edu",
                                         index: "${env.BRANCH_NAME}_staging",
                                         pkgName: "${env.PKG_NAME}",
@@ -384,7 +385,8 @@ pipeline {
                                 bat "venv36\\Scripts\\pip.exe install devpi --upgrade"
                                 echo "Testing Whl package in devpi"
                                 devpiTest(
-                                        devpiExecutable: "venv36\\Scripts\\devpi.exe",
+//                                        devpiExecutable: "venv36\\Scripts\\devpi.exe",
+                                        devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
                                         url: "https://devpi.library.illinois.edu",
                                         index: "${env.BRANCH_NAME}_staging",
                                         pkgName: "${env.PKG_NAME}",
