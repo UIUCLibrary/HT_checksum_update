@@ -90,30 +90,30 @@ pipeline {
                     }
                 }
 //                TODO: Remove cleaning dirs
-                stage("Cleanup extra dirs"){
-                    steps{
-                        dir("reports"){
-                            deleteDir()
-                            echo "Cleaned out reports directory"
-                            bat "dir"
-                        }
-                        dir("dist"){
-                            deleteDir()
-                            echo "Cleaned out dist directory"
-                            bat "dir"
-                        }
-                        dir("logs"){
-                            deleteDir()
-                            echo "Cleaned out logs directory"
-                            bat "dir"
-                        }
-                        dir("build"){
-                            deleteDir()
-                            echo "Cleaned out build directory"
-                            bat "dir"
-                        }
-                    }
-                }
+//                stage("Cleanup extra dirs"){
+//                    steps{
+//                        dir("reports"){
+//                            deleteDir()
+//                            echo "Cleaned out reports directory"
+//                            bat "dir"
+//                        }
+//                        dir("dist"){
+//                            deleteDir()
+//                            echo "Cleaned out dist directory"
+//                            bat "dir"
+//                        }
+//                        dir("logs"){
+//                            deleteDir()
+//                            echo "Cleaned out logs directory"
+//                            bat "dir"
+//                        }
+//                        dir("build"){
+//                            deleteDir()
+//                            echo "Cleaned out build directory"
+//                            bat "dir"
+//                        }
+//                    }
+//                }
                 stage("Creating virtualenv for building"){
                     steps{
                         bat "${tool 'CPython-3.6'}\\python -m venv venv"
