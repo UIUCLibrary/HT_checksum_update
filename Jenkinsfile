@@ -268,7 +268,7 @@ pipeline {
                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                             }
                             steps{
-                                bat "sphinx-build -b doctest docs\\source build\\docs -d build/docs/.doctrees -w logs\\doctest.log -c source/docs/source"
+                                bat "sphinx-build -b doctest source\\docs\\source build\\docs -d build/docs/.doctrees -w logs\\doctest.log -c source/docs/source"
                             }
                             post{
                                 always {
