@@ -173,7 +173,9 @@ pipeline {
             }
         }
         stage("Tests") {
-
+            environment {
+                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+            }
             parallel {
                 stage("PyTest"){
                     options{
