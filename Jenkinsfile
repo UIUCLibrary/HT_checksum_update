@@ -178,6 +178,15 @@ pipeline {
                     }
                 }
             }
+            post{
+                success{
+                    echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
+                }
+                failure {
+                    deleteDir()
+                }
+
+            }
         }
         stage("Building") {
             stages{
