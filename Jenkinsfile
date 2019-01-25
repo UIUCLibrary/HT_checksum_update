@@ -1,7 +1,21 @@
 @Library("ds-utils")
 import org.ds.*
-@Library("devpi") _
+@Library(["devpi", "PythonHelpers"]) _
 
+
+def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
+    script {
+                try {
+                    bat "${devpiExecutable} login ${devpiUsername} --password ${devpiPassword}"
+                    bat "${devpiExecutable} use ${devpiIndex}"
+                    bat "${devpiExecutable} remove -y ${pkgName}==${pkgVersion}"
+                } catch (Exception ex) {
+                    echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
+            }
+
+    }
+}
+// TODO: Remove global variables
 def PKG_NAME = "unknown"
 def PKG_VERSION = "unknown"
 def DOC_ZIP_FILENAME = "doc.zip"
@@ -75,6 +89,7 @@ pipeline {
                         }
                     }
                 }
+//                TODO: Remove cleaning dirs
                 stage("Cleanup extra dirs"){
                     steps{
                         dir("reports"){
@@ -623,6 +638,7 @@ pipeline {
 //                    }
 //                }
 //                bat "dir"
+//              TODO: Move to end of devpi cleanup
                 if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
                     withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                         bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
