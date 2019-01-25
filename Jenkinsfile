@@ -186,6 +186,9 @@ pipeline {
                             when {
                                equals expected: true, actual: params.TEST_RUN_PYTEST
                             }
+                            options{
+                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                            }
                             environment{
                                 junit_filename = "junit-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
