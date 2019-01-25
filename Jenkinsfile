@@ -462,30 +462,7 @@ pipeline {
                                         echo "Finished testing Built Distribution: .whl"
                                     }
                                 }
-                                stage("Deploy to DevPi Production") {
-                                    when {
-                                        allOf{
-                                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-                                            branch "master"
-                                        }
-                                    }
-                                    steps {
-                                        script {
-                                            try{
-                                                timeout(30) {
-                                                    input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
-                                                }
-                                                bat "venv\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW}"
 
-                                                bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                                                bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
-                                            } catch(err){
-                                                echo "User response timed out. Packages not deployed to DevPi Production."
-                                            }
-                                        }
-
-                                    }
-                                }
                             }
                             post {
                                 cleanup{
@@ -500,6 +477,30 @@ pipeline {
                                 }
                             }
                         }
+                    }
+                }
+                stage("Deploy to DevPi Production") {
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                            branch "master"
+                        }
+                    }
+                    steps {
+                        script {
+                            try{
+                                timeout(30) {
+                                    input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
+                                }
+                                bat "venv\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW}"
+
+                                bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                                bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
+                            } catch(err){
+                                echo "User response timed out. Packages not deployed to DevPi Production."
+                            }
+                        }
+
                     }
                 }
             }
