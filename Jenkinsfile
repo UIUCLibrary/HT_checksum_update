@@ -45,6 +45,7 @@ pipeline {
         booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
         booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
         booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a package")
+        booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: true, description: "Create a package with CX_Freeze")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to production devpi on https://devpi.library.illinois.edu/production/release. Release Branch Only")
@@ -290,7 +291,9 @@ pipeline {
                     }
                 }
                 stage("Windows CX_Freeze MSI"){
-
+                    when{
+                        equals expected: true, actual: params.PACKAGE_CX_FREEZE
+                    }
                     options {
                         timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
                     }
@@ -333,6 +336,7 @@ pipeline {
 
             environment{
                 PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.6'}\\Scripts;${PATH}"
+
             }
             stages{
                 stage("Install DevPi Client"){
@@ -506,7 +510,7 @@ pipeline {
         stage("Deploy - Staging") {
             agent any
             when {
-                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
+                expression { params.DEPLOY_SCCM == true}
             }
 
             steps {
@@ -518,7 +522,7 @@ pipeline {
         stage("Deploy - SCCM upload") {
             agent any
             when {
-                expression { params.DEPLOY_SCCM == true && params.PACKAGE == true }
+                expression { params.DEPLOY_SCCM == true}
             }
 
             steps {
