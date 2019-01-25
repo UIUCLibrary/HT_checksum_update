@@ -91,7 +91,7 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
                             }                           
                         }    
-                        bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install sphinx wheel --upgrade-strategy only-if-needed"
                         bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt"
                         bat "venv\\Scripts\\pip.exe install pluggy>=0.7"
 
@@ -176,69 +176,78 @@ pipeline {
             environment {
                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
             }
-            parallel {
-                stage("PyTest"){
-                    options{
-                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-                    }
-                    when {
-                        equals expected: true, actual: params.TEST_RUN_PYTEST
-                    }
+            stages{
+                stage("Install Python Testing Tools"){
                     steps{
-                        dir("source"){
-                            bat "pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum" //  --basetemp={envtmpdir}"
-                        }
-
+                        bat "pip install tox mypy lxml pytest pytest-cov flake8"
                     }
-                    post {
-                        always{
-                            dir("reports"){
-                                script{
-                                    def report_files = findFiles glob: '**/*.pytest.xml'
-                                    report_files.each { report_file ->
-                                        echo "Found ${report_file}"
-                                        // archiveArtifacts artifacts: "${log_file}"
-                                        junit "${report_file}"
-                                        bat "del ${report_file}"
+                }
+                stage("Run Tests"){
+                    parallel {
+                        stage("PyTest"){
+                            options{
+                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                            }
+                            when {
+                                equals expected: true, actual: params.TEST_RUN_PYTEST
+                            }
+                            steps{
+                                dir("source"){
+                                    bat "pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum" //  --basetemp={envtmpdir}"
+                                }
+
+                            }
+                            post {
+                                always{
+                                    dir("reports"){
+                                        script{
+                                            def report_files = findFiles glob: '**/*.pytest.xml'
+                                            report_files.each { report_file ->
+                                                echo "Found ${report_file}"
+                                                // archiveArtifacts artifacts: "${log_file}"
+                                                junit "${report_file}"
+                                                bat "del ${report_file}"
+                                            }
+                                        }
                                     }
+                                    // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                                 }
                             }
-                            // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                         }
-                    }
-                }
-                stage("Documentation"){
-                    when{
-                        equals expected: true, actual: params.TEST_RUN_DOCTEST
-                    }
-                    options{
-                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-                    }
-                    steps{
-                        dir("source"){
-                            bat "sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-                        }
-                    }
+                        stage("Documentation"){
+                            when{
+                                equals expected: true, actual: params.TEST_RUN_DOCTEST
+                            }
+                            options{
+                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                            }
+                            steps{
+                                dir("source"){
+                                    bat "sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                                }
+                            }
 
-                }
-                stage("MyPy"){
-                    when{
-                        equals expected: true, actual: params.TEST_RUN_MYPY
-                    }
-                    options{
-                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-                    }
-                    steps{
-                        bat "if not exist logs mkdir logs"
-                        dir("source") {
-                            bat "mypy -p hathi_checksum --junit-xml=${WORKSPACE}/logs/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
                         }
-                    }
-                    post{
-                        always {
-                            junit "logs/junit-${env.NODE_NAME}-mypy.xml"
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                        stage("MyPy"){
+                            when{
+                                equals expected: true, actual: params.TEST_RUN_MYPY
+                            }
+                            options{
+                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                            }
+                            steps{
+                                bat "if not exist logs mkdir logs"
+                                dir("source") {
+                                    bat "mypy -p hathi_checksum --junit-xml=${WORKSPACE}/logs/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                                }
+                            }
+                            post{
+                                always {
+                                    junit "logs/junit-${env.NODE_NAME}-mypy.xml"
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                                }
+                            }
                         }
                     }
                 }
