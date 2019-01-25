@@ -124,7 +124,6 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
                             }                           
                         }    
-                        bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
                         bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
                         bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt"
                         bat "venv\\Scripts\\pip.exe install pluggy>=0.7"
@@ -177,11 +176,6 @@ pipeline {
                         }
 
                         
-                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {    
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        }
-                        bat "dir"
                     }
                     post{
                         always{
@@ -387,7 +381,16 @@ pipeline {
             options{
                 timestamps()
             }
+
+            environment{
+                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.6'}\\Scripts;${PATH}"
+            }
             stages{
+                stage("Install DevPi Client"){
+                    steps{
+                        bat "pip install devpi-client"
+                    }
+                }
                 stage("Upload to DevPi Staging"){
                     steps {
                         unstash "DOCS_ARCHIVE"
