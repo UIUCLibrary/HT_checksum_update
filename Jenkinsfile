@@ -570,39 +570,43 @@ pipeline {
                         }
                     }
                 }
-                stage("Update online documentation") {
+                stage("Documentation Deployment"){
                     agent any
                     when {
-                        expression { params.UPDATE_DOCS == true }
+                        equals expected: true, actual: params.UPDATE_DOCS
                     }
-                    options{
-                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-                    }
-                    steps {
-                        dir("build/docs/html/"){
-                            bat "dir /s /B"
-                            sshPublisher(
-                                publishers: [
-                                    sshPublisherDesc(
-                                        configName: 'apache-ns - lib-dccuser-updater',
-                                        sshLabel: [label: 'Linux'],
-                                        transfers: [sshTransfer(excludes: '',
-                                        execCommand: '',
-                                        execTimeout: 120000,
-                                        flatten: false,
-                                        makeEmptyDirs: false,
-                                        noDefaultExcludes: false,
-                                        patternSeparator: '[, ]+',
-                                        remoteDirectory: "${params.URL_SUBFOLDER}",
-                                        remoteDirectorySDF: false,
-                                        removePrefix: '',
-                                        sourceFiles: '**')],
-                                    usePromotionTimestamp: false,
-                                    useWorkspaceInPromotion: false,
-                                    verbose: true
+                    stages{
+                        stage("Update online documentation") {
+                            options{
+                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                            }
+                            steps {
+                                dir("build/docs/html/"){
+                                    bat "dir /s /B"
+                                    sshPublisher(
+                                        publishers: [
+                                            sshPublisherDesc(
+                                                configName: 'apache-ns - lib-dccuser-updater',
+                                                sshLabel: [label: 'Linux'],
+                                                transfers: [sshTransfer(excludes: '',
+                                                execCommand: '',
+                                                execTimeout: 120000,
+                                                flatten: false,
+                                                makeEmptyDirs: false,
+                                                noDefaultExcludes: false,
+                                                patternSeparator: '[, ]+',
+                                                remoteDirectory: "${params.URL_SUBFOLDER}",
+                                                remoteDirectorySDF: false,
+                                                removePrefix: '',
+                                                sourceFiles: '**')],
+                                            usePromotionTimestamp: false,
+                                            useWorkspaceInPromotion: false,
+                                            verbose: true
+                                            )
+                                        ]
                                     )
-                                ]
-                            )
+                                }
+                            }
                         }
                     }
                 }
