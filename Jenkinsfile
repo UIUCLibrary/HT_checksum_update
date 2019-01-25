@@ -91,7 +91,7 @@ pipeline {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
                             }                           
                         }    
-                        bat "venv\\Scripts\\pip.exe install sphinx wheel \"pluggy>=0.7\" -r source\\requirements.txt --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install \"pluggy>=0.7\" -r source\\requirements.txt --upgrade-strategy only-if-needed"
 
                     }
                     post{
@@ -128,6 +128,7 @@ pipeline {
                        timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps {
+                        bat "pip install wheel"
                         dir("source"){
                             powershell "& python setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
                         }
