@@ -270,9 +270,7 @@ pipeline {
             }
         }
         stage("Packaging") {
-            when {
-                expression { params.DEPLOY_DEVPI == true || params.RELEASE != "None"}
-            }
+
             parallel {
                 stage("Source and Wheel formats"){
                     options{
