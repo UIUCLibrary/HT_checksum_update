@@ -228,10 +228,10 @@ pipeline {
                             }
                             steps{
                                 script{
-                                    bat "pip install flake8"
+
                                     try{
                                         dir("source"){
-                                            bat "flake8 uiucprescon --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
+                                            bat "flake8 hathi_checksum --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
                                         }
                                     } catch (exc) {
                                         echo "flake8 found some warnings"
