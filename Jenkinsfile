@@ -208,36 +208,6 @@ pipeline {
                                 }
                             }
                         }
-//                        stage("PyTest"){
-//                            options{
-//                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-//                            }
-//                            when {
-//                                equals expected: true, actual: params.TEST_RUN_PYTEST
-//                            }
-//                            steps{
-//                                dir("source"){
-//                                    bat "pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum" //  --basetemp={envtmpdir}"
-//                                }
-//
-//                            }
-//                            post {
-//                                always{
-//                                    dir("reports"){
-//                                        script{
-//                                            def report_files = findFiles glob: '**/*.pytest.xml'
-//                                            report_files.each { report_file ->
-//                                                echo "Found ${report_file}"
-//                                                // archiveArtifacts artifacts: "${log_file}"
-//                                                junit "${report_file}"
-//                                                bat "del ${report_file}"
-//                                            }
-//                                        }
-//                                    }
-//                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
-//                                }
-//                            }
-//                        }
                         stage("Run Flake8 Static Analysis") {
                             when {
                                 equals expected: true, actual: params.TEST_RUN_FLAKE8
