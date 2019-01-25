@@ -273,7 +273,7 @@ pipeline {
                             post{
                                 always {
                                     archiveArtifacts artifacts: 'logs\\doctest.log'
-                                    recordIssues(tools: [sphinxBuild(id: 'Doctest', name: 'DocTest', pattern: 'logs/build_sphinx.log')])
+                                    recordIssues(tools: [sphinxBuild(id: 'Doctest', name: 'DocTest', pattern: 'logs/doctest.log')])
                                 }
                             }
                         }
