@@ -2,8 +2,6 @@
 import org.ds.*
 @Library(["devpi", "PythonHelpers"]) _
 
-//  TODO: Replace warnings with reportIssues
-
 
 def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
     script {
@@ -138,7 +136,6 @@ pipeline {
                                     pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
                                 ]
                             )
-//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build.log']]
                             archiveArtifacts artifacts: "logs/build.log"
                         }
                         failure{
@@ -146,24 +143,23 @@ pipeline {
                         }
                     }
                 }
-                stage("Docs"){
+                stage("Sphinx Documentation"){
                     options{
                        timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps{
 //                    TODO: Replace with sphinx_build
                         echo "Building docs on ${env.NODE_NAME}"
-                        dir("source"){
-                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
-                        }
+                        bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -vv -w logs\\build_sphinx.log"
+//                        dir("source"){
+//                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
+//                        }
                     }
                     post{
                         always {
                             archiveArtifacts artifacts: "logs/build_sphinx.log"
                             recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log')])
 
-//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
-//                            archiveArtifacts artifacts: 'logs/build_sphinx.log'
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
@@ -244,7 +240,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage("Documentation"){
+                        stage("DocTest"){
                             when{
                                 equals expected: true, actual: params.TEST_RUN_DOCTEST
                             }
@@ -363,13 +359,6 @@ pipeline {
                         unstash "whl 3.6"
                         unstash "sdist"
                         bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
-//                        bat "venv\\Scripts\\devpi.exe use https://devpi.library.illinois.edu"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//
-//                        }
-//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-//                        bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
 
                     }
                 }
