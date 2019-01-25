@@ -521,74 +521,79 @@ pipeline {
                 }
             }
         }
-        stage("Deploy - SCCM"){
-            agent any
-            when {
-                equals expected: true, actual: params.DEPLOY_SCCM
-            }
-            stages{
-                stage("Deploy - Staging") {
+        stage("Deployment"){
+            parallel{
 
-
-
-                    steps {
-                        deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
-                        input("Deploy to production?")
+                stage("Deploy - SCCM"){
+                    agent any
+                    when {
+                        equals expected: true, actual: params.DEPLOY_SCCM
                     }
-                }
+                    stages{
+                        stage("Deploy - Staging") {
 
-                stage("Deploy - SCCM upload") {
 
-                    steps {
-                        deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
-                    }
-                }
-                stage("Creating Deployment request"){
-                    steps{
-                        script{
-                            unstash "Source"
-                            def  deployment_request = requestDeploy this, "deployment.yml"
-                            echo deployment_request
-                            writeFile file: "deployment_request.txt", text: deployment_request
-                            archiveArtifacts artifacts: "deployment_request.txt"
+
+                            steps {
+                                deployStash("msi", "${env.SCCM_STAGING_FOLDER}/${params.PROJECT_NAME}/")
+                                input("Deploy to production?")
+                            }
+                        }
+
+                        stage("Deploy - SCCM upload") {
+
+                            steps {
+                                deployStash("msi", "${env.SCCM_UPLOAD_FOLDER}")
+                            }
+                        }
+                        stage("Creating Deployment request"){
+                            steps{
+                                script{
+                                    unstash "Source"
+                                    def  deployment_request = requestDeploy this, "deployment.yml"
+                                    echo deployment_request
+                                    writeFile file: "deployment_request.txt", text: deployment_request
+                                    archiveArtifacts artifacts: "deployment_request.txt"
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }
-        stage("Update online documentation") {
-            agent any
-            when {
-                expression { params.UPDATE_DOCS == true }
-            }
-            options{
-               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-            }
-            steps {
-                dir("build/docs/html/"){
-                    bat "dir /s /B"
-                    sshPublisher(
-                        publishers: [
-                            sshPublisherDesc(
-                                configName: 'apache-ns - lib-dccuser-updater', 
-                                sshLabel: [label: 'Linux'], 
-                                transfers: [sshTransfer(excludes: '', 
-                                execCommand: '', 
-                                execTimeout: 120000, 
-                                flatten: false, 
-                                makeEmptyDirs: false, 
-                                noDefaultExcludes: false, 
-                                patternSeparator: '[, ]+', 
-                                remoteDirectory: "${params.URL_SUBFOLDER}", 
-                                remoteDirectorySDF: false, 
-                                removePrefix: '', 
-                                sourceFiles: '**')], 
-                            usePromotionTimestamp: false, 
-                            useWorkspaceInPromotion: false, 
-                            verbose: true
+                stage("Update online documentation") {
+                    agent any
+                    when {
+                        expression { params.UPDATE_DOCS == true }
+                    }
+                    options{
+                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                    }
+                    steps {
+                        dir("build/docs/html/"){
+                            bat "dir /s /B"
+                            sshPublisher(
+                                publishers: [
+                                    sshPublisherDesc(
+                                        configName: 'apache-ns - lib-dccuser-updater',
+                                        sshLabel: [label: 'Linux'],
+                                        transfers: [sshTransfer(excludes: '',
+                                        execCommand: '',
+                                        execTimeout: 120000,
+                                        flatten: false,
+                                        makeEmptyDirs: false,
+                                        noDefaultExcludes: false,
+                                        patternSeparator: '[, ]+',
+                                        remoteDirectory: "${params.URL_SUBFOLDER}",
+                                        remoteDirectorySDF: false,
+                                        removePrefix: '',
+                                        sourceFiles: '**')],
+                                    usePromotionTimestamp: false,
+                                    useWorkspaceInPromotion: false,
+                                    verbose: true
+                                    )
+                                ]
                             )
-                        ]
-                    )
+                        }
+                    }
                 }
             }
         }
