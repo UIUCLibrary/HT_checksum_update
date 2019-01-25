@@ -79,31 +79,6 @@ pipeline {
                         }
                     }
                 }
-//                TODO: Remove cleaning dirs
-//                stage("Cleanup extra dirs"){
-//                    steps{
-//                        dir("reports"){
-//                            deleteDir()
-//                            echo "Cleaned out reports directory"
-//                            bat "dir"
-//                        }
-//                        dir("dist"){
-//                            deleteDir()
-//                            echo "Cleaned out dist directory"
-//                            bat "dir"
-//                        }
-//                        dir("logs"){
-//                            deleteDir()
-//                            echo "Cleaned out logs directory"
-//                            bat "dir"
-//                        }
-//                        dir("build"){
-//                            deleteDir()
-//                            echo "Cleaned out build directory"
-//                            bat "dir"
-//                        }
-//                    }
-//                }
                 stage("Creating virtualenv for building"){
                     steps{
                         bat "python -m venv venv"
@@ -120,9 +95,6 @@ pipeline {
                         bat "venv\\Scripts\\pip.exe install -r source\\requirements.txt"
                         bat "venv\\Scripts\\pip.exe install pluggy>=0.7"
 
-//                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
-//                            bat "venv\\Scripts\\pip.exe list"
-//                        }
                     }
                     post{
                         success{
@@ -429,65 +401,7 @@ pipeline {
                                 }
                             }
                         }
-//                        stage("Built Distribution: py37 .whl") {
-//                            agent {
-//                                node {
-//                                    label "Windows && Python3"
-//                                }}
-//                            environment {
-//                                PATH = "${tool 'CPython-3.7'};$PATH"
-//                            }
-//                            options {
-//                                skipDefaultCheckout(true)
-//                            }
-//
-//                            steps {
-//                                echo "Testing Whl package in devpi"
-//                                bat "\"${tool 'CPython-3.7'}\\python.exe\" -m venv venv37"
-//                                bat "venv37\\Scripts\\python.exe -m pip install pip --upgrade"
-//                                bat "venv37\\Scripts\\pip.exe install devpi --upgrade"
-//                                devpiTest(
-//                                        devpiExecutable: "venv37\\Scripts\\devpi.exe",
-//                                        url: "https://devpi.library.illinois.edu",
-//                                        index: "${env.BRANCH_NAME}_staging",
-//                                        pkgName: "${env.PKG_NAME}",
-//                                        pkgVersion: "${env.PKG_VERSION}",
-//                                        pkgRegex: "37.*whl",
-//                                        detox: false,
-//                                        toxEnvironment: "py37"
-//                                    )
-//                                echo "Finished testing Built Distribution: .whl"
-//                            }
-//                            post {
-//                                failure {
-//                                    archiveArtifacts allowEmptyArchive: true, artifacts: "**/MSBuild_*.failure.txt"
-//                                }
-//                                cleanup{
-//                                    cleanWs(
-//                                        deleteDirs: true,
-//                                        disableDeferredWipeout: true,
-//                                        patterns: [
-//                                            [pattern: '*tmp', type: 'INCLUDE'],
-//                                            [pattern: 'certs', type: 'INCLUDE']
-//                                            ]
-//                                    )
-//                                }
-//                            }
-//                        }
                     }
-
-//                    post {
-//                        success {
-//                            echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
-//                            script {
-//                                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                                    bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                                    bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-//                                    bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
-//                                }
-//                            }
-//                        }
-//                    }
                 }
             }
             post {
@@ -595,29 +509,6 @@ pipeline {
                         [pattern: '*tmp', type: 'INCLUDE'],
                         ]
                     )
-//                if(fileExists('source/setup.py')){
-//                    dir("source"){
-//                        try{
-//                            retry(3) {
-//                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
-//                            }
-//                        } catch (Exception ex) {
-//                            echo "Unable to successfully run clean. Purging source directory."
-//                            deleteDir()
-//                        }
-//                    }
-//                }
-//                bat "dir"
-//              TODO: Move to end of devpi cleanup
-//                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
-//                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
-//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-//                    }
-//
-//                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${env.PKG_NAME}==${env.PKG_VERSION}"
-//                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
-//                }
             }
         }
         failure{
