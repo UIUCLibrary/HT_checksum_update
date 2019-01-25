@@ -2,6 +2,8 @@
 import org.ds.*
 @Library(["devpi", "PythonHelpers"]) _
 
+//  TODO: Replace warnings with reportIssues
+
 
 def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
     script {
@@ -460,7 +462,30 @@ pipeline {
                                         echo "Finished testing Built Distribution: .whl"
                                     }
                                 }
+                                stage("Deploy to DevPi Production") {
+                                    when {
+                                        allOf{
+                                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                                            branch "master"
+                                        }
+                                    }
+                                    steps {
+                                        script {
+                                            try{
+                                                timeout(30) {
+                                                    input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
+                                                }
+                                                bat "venv\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW}"
 
+                                                bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                                                bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
+                                            } catch(err){
+                                                echo "User response timed out. Packages not deployed to DevPi Production."
+                                            }
+                                        }
+
+                                    }
+                                }
                             }
                             post {
                                 cleanup{
@@ -477,81 +502,6 @@ pipeline {
                         }
                     }
                 }
-//                stage("Test DevPi packages") {
-//
-//                    parallel {
-//                        stage("Testing Submitted Source Distribution") {
-//                            steps {
-//                                echo "Testing Source tar.gz package in devpi"
-//
-//                                timeout(20){
-//                                    devpiTest(
-//                                        devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
-////                                        devpiExecutable: "venv\\Scripts\\devpi.exe",
-//                                        url: "https://devpi.library.illinois.edu",
-//                                        index: "${env.BRANCH_NAME}_staging",
-//                                        pkgName: "${env.PKG_NAME}",
-//                                        pkgVersion: "${env.PKG_VERSION}",
-//                                        pkgRegex: "tar.gz",
-//                                        detox: false
-//                                    )
-//                                }
-//                                echo "Finished testing Source Distribution: .tar.gz"
-//                            }
-//                            post {
-//                                failure {
-//                                    echo "Tests for .tar.gz source on DevPi failed."
-//                                }
-//                            }
-//
-//                        }
-//                        stage("Built Distribution: py36 .whl") {
-//                            agent {
-//                                node {
-//                                    label "Windows && Python3"
-//                                }
-//                            }
-//                            options {
-//                                skipDefaultCheckout(true)
-//                            }
-//
-//                            steps {
-//                                bat "\"${tool 'CPython-3.6'}\\python\" -m venv venv36"
-//                                bat "venv36\\Scripts\\python.exe -m pip install pip --upgrade"
-//                                bat "venv36\\Scripts\\pip.exe install devpi --upgrade"
-//                                echo "Testing Whl package in devpi"
-//                                devpiTest(
-////                                        devpiExecutable: "venv36\\Scripts\\devpi.exe",
-//                                        devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
-//                                        url: "https://devpi.library.illinois.edu",
-//                                        index: "${env.BRANCH_NAME}_staging",
-//                                        pkgName: "${env.PKG_NAME}",
-//                                        pkgVersion: "${env.PKG_VERSION}",
-//                                        pkgRegex: "36.*whl",
-//                                        detox: false,
-//                                        toxEnvironment: "py36"
-//                                    )
-//
-//                                echo "Finished testing Built Distribution: .whl"
-//                            }
-//                            post {
-//                                failure {
-//                                    archiveArtifacts allowEmptyArchive: true, artifacts: "**/MSBuild_*.failure.txt"
-//                                }
-//                                cleanup{
-//                                    cleanWs(
-//                                        deleteDirs: true,
-//                                        disableDeferredWipeout: true,
-//                                        patterns: [
-//                                            [pattern: '*tmp', type: 'INCLUDE'],
-//                                            [pattern: 'certs', type: 'INCLUDE']
-//                                            ]
-//                                    )
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
             }
             post {
                 success {
