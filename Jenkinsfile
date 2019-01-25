@@ -119,6 +119,9 @@ pipeline {
             }
         }
         stage("Building") {
+            environment {
+                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+            }
             stages{
                 stage("Python Package"){
                     options{
@@ -126,7 +129,7 @@ pipeline {
                     }
                     steps {
                         dir("source"){
-                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
+                            powershell "& python setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
                         }
 
                     }
@@ -149,7 +152,7 @@ pipeline {
                     }
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
-                        bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -vv -w logs\\build_sphinx.log"
+                        bat "pip install sphinx && sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -vv -w logs\\build_sphinx.log"
                     }
                     post{
                         always {
@@ -177,7 +180,7 @@ pipeline {
             stages{
                 stage("Install Python Testing Tools"){
                     steps{
-                        bat "pip install tox mypy lxml pytest pytest-cov flake8 sphinx"
+                        bat "pip install tox mypy lxml pytest pytest-cov flake8"
                     }
                 }
                 stage("Run Tests"){
