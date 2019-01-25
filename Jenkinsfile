@@ -16,11 +16,7 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
     }
 }
 // TODO: Remove global variables
-def PKG_NAME = "unknown"
-def PKG_VERSION = "unknown"
-def DOC_ZIP_FILENAME = "doc.zip"
 def junit_filename = "junit.xml"
-def REPORT_DIR = ""
 def VENV_ROOT = ""
 def VENV_PYTHON = ""
 def VENV_PIP = ""
@@ -147,18 +143,8 @@ pipeline {
                 }
                 stage("Setting variables used by the rest of the build"){
                     steps{
-                        
-                        script {
-                            // Set up the reports directory variable 
-                            REPORT_DIR = "${pwd tmp: true}\\reports"
-                           dir("source"){
-                                PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python  setup.py --name").trim()
-                                PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python setup.py --version").trim()
-                           }
-                        }
 
                         script{
-                            DOC_ZIP_FILENAME = "${PKG_NAME}-${PKG_VERSION}.doc.zip"
                             junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                         }
 
@@ -180,10 +166,7 @@ pipeline {
                     post{
                         always{
                             bat "dir /s / B"
-                            echo """Name                            = ${PKG_NAME}
-        Version                         = ${PKG_VERSION}
-        Report Directory                = ${REPORT_DIR}
-        documentation zip file          = ${DOC_ZIP_FILENAME}
+                            echo """
         Python virtual environment path = ${VENV_ROOT}
         VirtualEnv Python executable    = ${VENV_PYTHON}
         VirtualEnv Pip executable       = ${VENV_PIP}
@@ -237,9 +220,9 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                            zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
 //                            stash includes: 'build/docs/html/**', name: 'docs'
-                            stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
+                            stash includes: "dist/${env.DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
                         }
                         failure{
                             echo "Failed to build Python package"
@@ -417,8 +400,8 @@ pipeline {
                                         devpiExecutable: "venv\\Scripts\\devpi.exe",
                                         url: "https://devpi.library.illinois.edu",
                                         index: "${env.BRANCH_NAME}_staging",
-                                        pkgName: "${PKG_NAME}",
-                                        pkgVersion: "${PKG_VERSION}",
+                                        pkgName: "${env.PKG_NAME}",
+                                        pkgVersion: "${env.PKG_VERSION}",
                                         pkgRegex: "tar.gz",
                                         detox: false
                                     )
@@ -451,8 +434,8 @@ pipeline {
                                         devpiExecutable: "venv36\\Scripts\\devpi.exe",
                                         url: "https://devpi.library.illinois.edu",
                                         index: "${env.BRANCH_NAME}_staging",
-                                        pkgName: "${PKG_NAME}",
-                                        pkgVersion: "${PKG_VERSION}",
+                                        pkgName: "${env.PKG_NAME}",
+                                        pkgVersion: "${env.PKG_VERSION}",
                                         pkgRegex: "36.*whl",
                                         detox: false,
                                         toxEnvironment: "py36"
@@ -497,8 +480,8 @@ pipeline {
 //                                        devpiExecutable: "venv37\\Scripts\\devpi.exe",
 //                                        url: "https://devpi.library.illinois.edu",
 //                                        index: "${env.BRANCH_NAME}_staging",
-//                                        pkgName: "${PKG_NAME}",
-//                                        pkgVersion: "${PKG_VERSION}",
+//                                        pkgName: "${env.PKG_NAME}",
+//                                        pkgVersion: "${env.PKG_VERSION}",
 //                                        pkgRegex: "37.*whl",
 //                                        detox: false,
 //                                        toxEnvironment: "py37"
@@ -530,7 +513,7 @@ pipeline {
                                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                                     bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
                                     bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
-                                    bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                                    bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                                 }
                             }
                         }
@@ -646,7 +629,7 @@ pipeline {
                         bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
                     }
 
-                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION}"
+                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${env.PKG_NAME}==${env.PKG_VERSION}"
                     echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
             }
