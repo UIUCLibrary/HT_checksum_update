@@ -148,12 +148,8 @@ pipeline {
                        timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps{
-//                    TODO: Replace with sphinx_build
                         echo "Building docs on ${env.NODE_NAME}"
                         bat "sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -vv -w logs\\build_sphinx.log"
-//                        dir("source"){
-//                            powershell "& ${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build_sphinx --build-dir ${WORKSPACE}\\build\\docs | tee ${WORKSPACE}\\logs\\build_sphinx.log"
-//                        }
                     }
                     post{
                         always {
@@ -164,7 +160,6 @@ pipeline {
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
-//                            stash includes: 'build/docs/html/**', name: 'docs'
                             stash includes: "dist/${env.DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
                         }
                         failure{
@@ -187,37 +182,56 @@ pipeline {
                 }
                 stage("Run Tests"){
                     parallel {
-                        stage("PyTest"){
-                            options{
-                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-                            }
+                        stage("Run Pytest Unit Tests"){
                             when {
-                                equals expected: true, actual: params.TEST_RUN_PYTEST
+                               equals expected: true, actual: params.TEST_RUN_PYTEST
+                            }
+                            environment{
+                                junit_filename = "junit-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
                             steps{
-                                dir("source"){
-                                    bat "pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum" //  --basetemp={envtmpdir}"
+                                bat "if not exist reports\\coverage mkdir reports\\coverage"
+                                 dir("source"){
+                                    bat "pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum"
                                 }
-
                             }
                             post {
-                                always{
-                                    dir("reports"){
-                                        script{
-                                            def report_files = findFiles glob: '**/*.pytest.xml'
-                                            report_files.each { report_file ->
-                                                echo "Found ${report_file}"
-                                                // archiveArtifacts artifacts: "${log_file}"
-                                                junit "${report_file}"
-                                                bat "del ${report_file}"
-                                            }
-                                        }
-                                    }
-                                    // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
+                                always {
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                                    junit "reports/pytest/${env.junit_filename}"
                                 }
                             }
                         }
+//                        stage("PyTest"){
+//                            options{
+//                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+//                            }
+//                            when {
+//                                equals expected: true, actual: params.TEST_RUN_PYTEST
+//                            }
+//                            steps{
+//                                dir("source"){
+//                                    bat "pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum" //  --basetemp={envtmpdir}"
+//                                }
+//
+//                            }
+//                            post {
+//                                always{
+//                                    dir("reports"){
+//                                        script{
+//                                            def report_files = findFiles glob: '**/*.pytest.xml'
+//                                            report_files.each { report_file ->
+//                                                echo "Found ${report_file}"
+//                                                // archiveArtifacts artifacts: "${log_file}"
+//                                                junit "${report_file}"
+//                                                bat "del ${report_file}"
+//                                            }
+//                                        }
+//                                    }
+//                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+//                                }
+//                            }
+//                        }
                         stage("Run Flake8 Static Analysis") {
                             when {
                                 equals expected: true, actual: params.TEST_RUN_FLAKE8
