@@ -176,28 +176,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Run Flake8 Static Analysis") {
-                    when {
-                        equals expected: true, actual: params.TEST_RUN_FLAKE8
-                    }
-                    steps{
-                        script{
-                            bat "pip install flake8"
-                            try{
-                                dir("source"){
-                                    bat "flake8 uiucprescon --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
-                                }
-                            } catch (exc) {
-                                echo "flake8 found some warnings"
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
-                        }
-                    }
-                }
+
             }
         }
         stage("Tests") {
@@ -240,6 +219,28 @@ pipeline {
                                     }
                                     // junit "reports/junit-${env.NODE_NAME}-pytest.xml"
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                                }
+                            }
+                        }
+                        stage("Run Flake8 Static Analysis") {
+                            when {
+                                equals expected: true, actual: params.TEST_RUN_FLAKE8
+                            }
+                            steps{
+                                script{
+                                    bat "pip install flake8"
+                                    try{
+                                        dir("source"){
+                                            bat "flake8 uiucprescon --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
+                                        }
+                                    } catch (exc) {
+                                        echo "flake8 found some warnings"
+                                    }
+                                }
+                            }
+                            post {
+                                always {
+                                    recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                 }
                             }
                         }
