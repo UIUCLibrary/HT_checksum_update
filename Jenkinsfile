@@ -372,7 +372,7 @@ pipeline {
                             }
                             agent {
                                 node {
-                                    label "Windows && Python3 && !Docker"
+                                    label "Windows && Python3"
                                 }
                             }
                             options {
@@ -429,7 +429,7 @@ pipeline {
                         stage("Built Distribution: .whl") {
                             agent {
                                 node {
-                                    label "Windows && Python3 && !Docker"
+                                    label "Windows && Python3"
                                 }
                             }
                             environment {
