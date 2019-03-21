@@ -4,7 +4,7 @@ import cx_Freeze
 import pytest
 import hathi_checksum
 import platform
-
+import re
 
 
 def create_msi_tablename(python_name, fullname):
@@ -81,13 +81,16 @@ build_exe_options = {
     "include_files": INCLUDE_FILES,
 
 }
+version_extractor = re.compile("\d+[.]\d+[.]\d+")
+version = version_extractor.search(hathi_checksum.__version__).group(0)
+
 
 target_name = "udhtchecksum.exe" if platform.system() == "Windows" else "udhtchecksum"
 cx_Freeze.setup(
     name=hathi_checksum.FULL_TITLE,
     description=hathi_checksum.__description__,
     license="University of Illinois/NCSA Open Source License",
-    version=hathi_checksum.__version__,
+    version=version,
     author=hathi_checksum.__author__,
     author_email=hathi_checksum.__author_email__,
     options={
