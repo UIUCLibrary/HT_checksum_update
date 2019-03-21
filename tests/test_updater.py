@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 
 import hathi_checksum.update_report
@@ -118,12 +120,15 @@ ecaa88f7fa0bf610a5a26cf545dcd3aa *00000056.txt
 6a12336450d1c4703c2a0ab98de8c8fe *meta.yml
 """
 
+
 @pytest.fixture(scope="session")
 def md5_file(tmpdir_factory):
-    fn = tmpdir_factory.mktemp("temp_package").join("checksum.md5")
+    root_dir = tmpdir_factory.mktemp("temp_package", numbered=False)
+    fn = root_dir.join("checksum.md5")
     with open(str(fn), "w") as f:
         f.write(CHECKSUM_FILE_TEXT)
-    return str(fn)
+    yield str(fn)
+    shutil.rmtree(root_dir)
 
 
 def test_update_checksum(md5_file):
