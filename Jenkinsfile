@@ -420,6 +420,7 @@ pipeline {
                                         disableDeferredWipeout: true,
                                         patterns: [
                                             [pattern: '*tmp', type: 'INCLUDE'],
+                                            [pattern: 'source', type: 'INCLUDE'],
                                             [pattern: 'certs', type: 'INCLUDE']
                                             ]
                                     )
@@ -482,6 +483,7 @@ pipeline {
                                         deleteDirs: true,
                                         disableDeferredWipeout: true,
                                         patterns: [
+                                            [pattern: 'source', type: 'INCLUDE'],
                                             [pattern: '*tmp', type: 'INCLUDE'],
                                             [pattern: 'certs', type: 'INCLUDE']
                                             ]
@@ -541,6 +543,9 @@ pipeline {
                     when {
                         equals expected: true, actual: params.DEPLOY_SCCM
                     }
+                    options {
+                        skipDefaultCheckout(true)
+                    }
                     stages{
                         stage("Deploy - Staging") {
 
@@ -575,6 +580,9 @@ pipeline {
                     agent any
                     when {
                         equals expected: true, actual: params.UPDATE_DOCS
+                    }
+                    options {
+                        skipDefaultCheckout(true)
                     }
                     stages{
                         stage("Update online documentation") {
