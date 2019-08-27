@@ -34,6 +34,7 @@ pipeline {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
 //        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
+        buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     triggers {
         cron('@daily')
