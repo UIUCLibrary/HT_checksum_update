@@ -45,7 +45,6 @@ pipeline {
         booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
         booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
         booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
-        booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 Tests")
         booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: true, description: "Create a package with CX_Freeze")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -211,15 +210,19 @@ pipeline {
                             }
                         }
                         stage("Run Flake8 Static Analysis") {
-                            when {
-                                equals expected: true, actual: params.TEST_RUN_FLAKE8
+                            agent{
+                                dockerfile {
+                                    filename 'CI/docker/pytest_tests/Dockerfile'
+                                    label "linux && docker"
+                                    dir 'source'
+                                    }
                             }
                             steps{
                                 script{
 
                                     try{
                                         dir("source"){
-                                            bat "flake8 hathi_checksum --tee --output-file=${WORKSPACE}\\logs\\flake8.log"
+                                            sh "flake8 hathi_checksum --tee --output-file=${WORKSPACE}/logs/flake8.log"
                                         }
                                     } catch (exc) {
                                         echo "flake8 found some warnings"
@@ -228,7 +231,11 @@ pipeline {
                             }
                             post {
                                 always {
-                                    recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                                    stash includes: "logs/flake8.log", name: 'FLAKE8_LOGS'
+                                    dir("source"){
+                                        unstash "FLAKE8_LOGS"
+                                        recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                                    }
                                 }
                             }
                         }
