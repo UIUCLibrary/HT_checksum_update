@@ -18,7 +18,7 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 
 pipeline {
     agent {
-        label "Windows"
+        label "Windows && Python3"
     }
 
     environment {
