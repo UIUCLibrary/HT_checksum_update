@@ -22,7 +22,7 @@ pipeline {
     }
 
     environment {
-        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+
         PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
         PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
         DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
@@ -56,6 +56,9 @@ pipeline {
         stage("Configure") {
             options{
                 timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
+            }
+            environment{
+                PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
             }
             stages{
                 stage("Purge all existing data in workspace"){
