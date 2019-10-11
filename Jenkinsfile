@@ -178,11 +178,12 @@ pipeline {
             }
         }
         stage("Tests") {
-            environment {
-                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-            }
+
             stages{
                 stage("Install Python Testing Tools"){
+                    environment {
+                        PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+                    }
                     steps{
                         bat "pip install tox mypy lxml pytest pytest-cov flake8"
                     }
@@ -198,6 +199,7 @@ pipeline {
                             }
                             environment{
                                 junit_filename = "junit-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
+                                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
                             }
                             steps{
                                 bat "if not exist reports\\coverage mkdir reports\\coverage"
@@ -249,6 +251,9 @@ pipeline {
                             options{
                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                             }
+                            environment {
+                                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+                            }
                             steps{
                                 bat "sphinx-build -b doctest source\\docs\\source build\\docs -d build/docs/.doctrees -w logs\\doctest.log -c source/docs/source"
                             }
@@ -262,6 +267,9 @@ pipeline {
                         stage("MyPy"){
                             when{
                                 equals expected: true, actual: params.TEST_RUN_MYPY
+                            }
+                            environment {
+                                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
                             }
                             options{
                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
