@@ -224,7 +224,7 @@ pipeline {
                             }
                             steps{
                                 script{
-
+                                    sh "mkdir -p logs"
                                     try{
                                         dir("source"){
                                             sh "flake8 hathi_checksum --tee --output-file=${WORKSPACE}/logs/flake8.log"
