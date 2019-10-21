@@ -319,12 +319,11 @@ pipeline {
                             steps{
                                 bat "if not exist logs mkdir logs"
                                 dir("source") {
-                                    bat "mypy -p hathi_checksum --junit-xml=${WORKSPACE}/logs/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
+                                    bat "mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html"
                                 }
                             }
                             post{
                                 always {
-                                    junit "logs/junit-${env.NODE_NAME}-mypy.xml"
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                                 }
                             }
