@@ -59,9 +59,6 @@ pipeline {
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
-        booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
-        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
-        booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
         booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: true, description: "Create a package with CX_Freeze")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
         // TODO: TURN DEPLOY_DEVPI default to false
@@ -231,9 +228,6 @@ pipeline {
                 stage("Run Tests"){
                     parallel {
                         stage("Run Pytest Unit Tests"){
-                            when {
-                               equals expected: true, actual: params.TEST_RUN_PYTEST
-                            }
                             options{
                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                             }
@@ -285,9 +279,6 @@ pipeline {
                             }
                         }
                         stage("DocTest"){
-                            when{
-                                equals expected: true, actual: params.TEST_RUN_DOCTEST
-                            }
                             options{
                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                             }
@@ -305,9 +296,6 @@ pipeline {
                             }
                         }
                         stage("MyPy"){
-                            when{
-                                equals expected: true, actual: params.TEST_RUN_MYPY
-                            }
                             environment {
                                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
                             }
