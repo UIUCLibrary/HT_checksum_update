@@ -319,7 +319,9 @@ pipeline {
                             steps{
                                 bat "if not exist logs mkdir logs"
                                 dir("source") {
-                                    bat "mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html"
+                                    catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
+                                        bat "mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html"
+                                    }
                                 }
                             }
                             post{
