@@ -43,7 +43,6 @@ pipeline {
     }
 
     environment {
-        DEVPI = credentials("DS_devpi")
         mypy_args = "--junit-xml=mypy.xml"
         pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
     }
@@ -389,8 +388,7 @@ pipeline {
                 PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.6'}\\Scripts;${PATH}"
                 PKG_NAME = get_package_name("DIST-INFO", "HathiChecksumUpdater.dist-info/METADATA")
                 PKG_VERSION = get_package_version("DIST-INFO", "HathiChecksumUpdater.dist-info/METADATA")
-
-
+                DEVPI = credentials("DS_devpi")
             }
             stages{
                 stage("Install DevPi Client"){
