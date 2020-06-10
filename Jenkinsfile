@@ -476,7 +476,7 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                     steps {
                         unstash "DIST-INFO"
                         script{
-                            def props = readProperties interpolate: true, file: "speedwagon.dist-info/METADATA"
+                            def props = readProperties interpolate: true, file: "HathiChecksumUpdater.dist-info/METADATA"
                             sh "devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME} && devpi push ${props.Name}==${props.Version} production/release"
                         }
                     }
