@@ -78,65 +78,76 @@ pipeline {
                 }
             }
         }
-        stage("Configure") {
-            options{
-                timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
-            }
-            environment{
-                PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
-            }
-            stages{
-
-                stage("Creating virtualenv for building"){
-                    steps{
-                        bat "python -m venv venv"
-                        script {
-                            try {
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
-                            }
-                            catch (exc) {
-                                bat "python -m venv venv"
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
-                            }                           
-                        }    
-                        bat "venv\\Scripts\\pip.exe install \"pluggy>=0.7\" -r source\\requirements.txt --upgrade-strategy only-if-needed"
-
-                    }
-                    post{
-                        success{
-                            bat "(if not exist logs mkdir logs) && venv\\Scripts\\pip.exe list > ${WORKSPACE}\\logs\\pippackages_venv_${NODE_NAME}.log"
-                            archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log"
-                        }
-                        failure {
-                            deleteDir()
-                        }
-                        cleanup{
-                            cleanWs(patterns: [[pattern: 'logs/pippackages_venv_*.log', type: 'INCLUDE']])
-                        }
-                    }
-                }
-            }
-            post{
-                failure {
-                    deleteDir()
-                }
-
-            }
-        }
+//         stage("Configure") {
+//             options{
+//                 timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
+//             }
+//             environment{
+//                 PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+//             }
+//             stages{
+//
+//                 stage("Creating virtualenv for building"){
+//                     steps{
+//                         bat "python -m venv venv"
+//                         script {
+//                             try {
+//                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
+//                             }
+//                             catch (exc) {
+//                                 bat "python -m venv venv"
+//                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
+//                             }
+//                         }
+//                         bat "venv\\Scripts\\pip.exe install \"pluggy>=0.7\" -r source\\requirements.txt --upgrade-strategy only-if-needed"
+//
+//                     }
+//                     post{
+//                         success{
+//                             bat "(if not exist logs mkdir logs) && venv\\Scripts\\pip.exe list > ${WORKSPACE}\\logs\\pippackages_venv_${NODE_NAME}.log"
+//                             archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log"
+//                         }
+//                         failure {
+//                             deleteDir()
+//                         }
+//                         cleanup{
+//                             cleanWs(patterns: [[pattern: 'logs/pippackages_venv_*.log', type: 'INCLUDE']])
+//                         }
+//                     }
+//                 }
+//             }
+//             post{
+//                 failure {
+//                     deleteDir()
+//                 }
+//
+//             }
+//         }
         stage("Building") {
-            environment {
-                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+            agent {
+                dockerfile {
+                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                    label 'linux && docker'
+                }
             }
+//             environment {
+//                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+//             }
             stages{
                 stage("Python Package"){
                     options{
                        timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                     }
                     steps {
-                        bat "pip install wheel"
-                        dir("source"){
-                            powershell "& python setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
-                        }
+//                         bat "pip install wheel"
+//                         dir("source"){
+                            sh(
+                                label: "Building Python Package",
+                                script:'''mkdir -p logs
+                                          python setup.py build -b build  | tee logs/build.log'''
+                                )
+//                             powershell "& python setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
+//                         }
 
                     }
                     post{
