@@ -110,7 +110,8 @@ pipeline {
                     steps{
                         sh(
                            label: "Building docs",
-                           script: '''python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log -c docs/source
+                           script: '''mkdir -p logs
+                           python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log -c docs/source
                             '''
                         )
                     }
