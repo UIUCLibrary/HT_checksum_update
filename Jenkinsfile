@@ -142,12 +142,8 @@ pipeline {
                 stage("Run Tests"){
                     parallel {
                         stage("Run Pytest Unit Tests"){
-//                             options{
-//                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-//                             }
                             environment{
                                 junit_filename = "junit-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
-//                                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
                             }
                             agent {
                                 dockerfile {
@@ -156,7 +152,6 @@ pipeline {
                                 }
                             }
                             steps{
-//                                 bat "if not exist reports\\coverage mkdir reports\\coverage"
                                 timeout(5){
                                     catchError(buildResult: "UNSTABLE", message: 'pytest found issues', stageResult: "UNSTABLE") {
                                         sh(
@@ -164,8 +159,7 @@ pipeline {
                                            script: """mkdir -p reports/coverage
                                                       pytest --junitxml=reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/coverage/ --cov=hathi_checksum
                                                       """
-                                            )
-        //                                 bat "pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum"
+                                        )
                                     }
                                 }
                             }
@@ -206,9 +200,6 @@ pipeline {
                                     label 'linux && docker'
                                 }
                             }
-//                             environment {
-//                                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-//                             }
                             steps{
                                 timeout(5){
                                     catchError(buildResult: "SUCCESS", message: 'Doctest found issues', stageResult: "UNSTABLE") {
@@ -248,7 +239,7 @@ pipeline {
                                 timeout(5){
                                     catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
                                         sh (script: '''mkdir -p logs
-                                        mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html
+                                                       mypy -p hathi_checksum --html-report reports/mypy_html | tee logs/mypy.log"
                                         '''
                                         )
     //                                     bat "mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html"
@@ -257,6 +248,7 @@ pipeline {
                             }
                             post{
                                 always {
+                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
                                 }
                             }
