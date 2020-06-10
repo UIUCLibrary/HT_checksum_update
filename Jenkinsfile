@@ -158,22 +158,25 @@ pipeline {
                             )
                             archiveArtifacts artifacts: "logs/build.log"
                         }
-                        failure{
-                            echo "Failed to build Python package"
-                        }
                     }
                 }
                 stage("Sphinx Documentation"){
                     options{
                        timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
                     }
-                    environment{
-                        PKG_NAME = get_package_name("DIST-INFO", "HathiChecksumUpdater.dist-info/METADATA")
-                        PKG_VERSION = get_package_version("DIST-INFO", "HathiChecksumUpdater.dist-info/METADATA")
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                            label 'linux && docker'
+                        }
                     }
                     steps{
-                        echo "Building docs on ${env.NODE_NAME}"
-                        bat "pip install sphinx && sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -w logs\\build_sphinx.log -c source/docs/source"
+                        sh(
+                           label: "Building docs on ${env.NODE_NAME}",
+                           script: '''python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log -c docs/source
+                            '''
+                        )
+//                         bat "pip install sphinx && sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -w logs\\build_sphinx.log -c source/docs/source"
                     }
                     post{
                         always {
@@ -183,7 +186,9 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+                            unstash "DIST-INFO"
                             script{
+                                def props = readProperties interpolate: true, file: "HathiChecksumUpdater.dist-info/METADATA"
                                 def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
                                 zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                                 stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
