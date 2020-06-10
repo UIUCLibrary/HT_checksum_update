@@ -271,7 +271,7 @@ pipeline {
                             sh "python setup.py sdist --format zip -d dist bdist_wheel -d dist"
                         }
 //                         bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
-                        stash includes: 'dist/*.whl', name: "whl 3.6"
+                        stash includes: 'dist/*.whl', name: "whl"
                         stash includes: 'dist/*.zip', name: "sdist"
 
                     }
@@ -285,13 +285,19 @@ pipeline {
                     when{
                         equals expected: true, actual: params.PACKAGE_CX_FREEZE
                     }
-                    options {
-                        timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/python/windows/Dockerfile'
+                            label "windows && docker"
+                        }
                     }
                     steps{
-                        bat "if not exist dist mkdir dist"
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir ${WORKSPACE}/build/msi -d ${WORKSPACE}/dist"
+//                         bat "if not exist dist mkdir dist"
+                        timeout(10){
+                            bat(
+                                label: "Freezing to msi installer",
+                                script:"python cx_setup.py bdist_msi --add-to-path=true -k --bdist-dir build/msi -d dist"
+                                )
                         }
 
 
@@ -340,7 +346,7 @@ pipeline {
                 stage("Upload to DevPi Staging"){
                     steps {
                         unstash "DOCS_ARCHIVE"
-                        unstash "whl 3.6"
+                        unstash "whl"
                         unstash "sdist"
                         bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
 
