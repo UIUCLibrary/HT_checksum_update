@@ -50,7 +50,6 @@ pipeline {
         cron('@daily')
     }
     parameters {
-        booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
         booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: true, description: "Create a package with CX_Freeze")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
@@ -78,51 +77,6 @@ pipeline {
                 }
             }
         }
-//         stage("Configure") {
-//             options{
-//                 timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
-//             }
-//             environment{
-//                 PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
-//             }
-//             stages{
-//
-//                 stage("Creating virtualenv for building"){
-//                     steps{
-//                         bat "python -m venv venv"
-//                         script {
-//                             try {
-//                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.1"
-//                             }
-//                             catch (exc) {
-//                                 bat "python -m venv venv"
-//                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
-//                             }
-//                         }
-//                         bat "venv\\Scripts\\pip.exe install \"pluggy>=0.7\" -r source\\requirements.txt --upgrade-strategy only-if-needed"
-//
-//                     }
-//                     post{
-//                         success{
-//                             bat "(if not exist logs mkdir logs) && venv\\Scripts\\pip.exe list > ${WORKSPACE}\\logs\\pippackages_venv_${NODE_NAME}.log"
-//                             archiveArtifacts artifacts: "logs/pippackages_venv_${NODE_NAME}.log"
-//                         }
-//                         failure {
-//                             deleteDir()
-//                         }
-//                         cleanup{
-//                             cleanWs(patterns: [[pattern: 'logs/pippackages_venv_*.log', type: 'INCLUDE']])
-//                         }
-//                     }
-//                 }
-//             }
-//             post{
-//                 failure {
-//                     deleteDir()
-//                 }
-//
-//             }
-//         }
         stage("Building") {
             agent {
                 dockerfile {
@@ -130,33 +84,15 @@ pipeline {
                     label 'linux && docker'
                 }
             }
-//             environment {
-//                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-//             }
             stages{
                 stage("Python Package"){
-                    options{
-                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-                    }
                     steps {
-//                         bat "pip install wheel"
-//                         dir("source"){
+                        timeout(5){
                             sh(
-                                label: "Building Python Package",
-                                script:'''mkdir -p logs
-                                          python setup.py build -b build  | tee logs/build.log'''
-                                )
-//                             powershell "& python setup.py build -b ${WORKSPACE}\\build  | tee ${WORKSPACE}\\logs\\build.log"
-//                         }
-
-                    }
-                    post{
-                        always{
-                            recordIssues(tools: [
-                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
-                                ]
+                               label: "Building Python Package",
+                               script:'''mkdir -p logs
+                                         python setup.py build -b build'''
                             )
-                            archiveArtifacts artifacts: "logs/build.log"
                         }
                     }
                 }
@@ -172,11 +108,10 @@ pipeline {
                     }
                     steps{
                         sh(
-                           label: "Building docs on ${env.NODE_NAME}",
+                           label: "Building docs",
                            script: '''python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log -c docs/source
                             '''
                         )
-//                         bat "pip install sphinx && sphinx-build source/docs/source build/docs/html -d build/docs/.doctrees -w logs\\build_sphinx.log -c source/docs/source"
                     }
                     post{
                         always {
@@ -193,9 +128,6 @@ pipeline {
                                 zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                                 stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
                             }
-                        }
-                        failure{
-                            echo "Failed to build Python package"
                         }
                     }
                 }
