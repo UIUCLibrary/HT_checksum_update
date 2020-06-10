@@ -484,11 +484,6 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                             )
                         }
                     }
-                    post{
-                        success{
-                            jiraComment body: "Version ${PKG_VERSION} was added to https://devpi.library.illinois.edu/production/release index.", issueKey: "${params.JIRA_ISSUE_VALUE}"
-                        }
-                    }
                 }
             }
             post{
