@@ -309,6 +309,7 @@ pipeline {
                     post{
                         success{
                             archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+                            stash includes: 'dist/*.whl,dist/*.tar.gz,dist/*.zip', name: "PYTHON_PACKAGES"
                         }
                     }
                 }
