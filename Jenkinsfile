@@ -445,7 +445,7 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                                             patterns: [
                                                 [pattern: "dist/", type: 'INCLUDE'],
                                                 [pattern: "certs/", type: 'INCLUDE'],
-                                                [pattern: "uiucprescon.packager.dist-info/", type: 'INCLUDE'],
+                                                [pattern: 'build/', type: 'INCLUDE']
                                                 [pattern: 'build/', type: 'INCLUDE']
                                             ]
                                         )
@@ -455,7 +455,38 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                         }
                     }
                 }
-
+                stage("Deploy to DevPi Production") {
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                            branch "master"
+                        }
+                        beforeAgent true
+                        beforeInput true
+                    }
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/deploy/devpi/deploy/Dockerfile'
+                            label 'linux&&docker'
+                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                          }
+                    }
+                    input {
+                        message 'Release to DevPi Production?'
+                    }
+                    steps {
+                        unstash "DIST-INFO"
+                        script{
+                            def props = readProperties interpolate: true, file: "speedwagon.dist-info/METADATA"
+                            sh "devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME} && devpi push ${props.Name}==${props.Version} production/release"
+                        }
+                    }
+                    post{
+                        success{
+                            jiraComment body: "Version ${PKG_VERSION} was added to https://devpi.library.illinois.edu/production/release index.", issueKey: "${params.JIRA_ISSUE_VALUE}"
+                        }
+                    }
+                }
             }
             post{
                 success{
