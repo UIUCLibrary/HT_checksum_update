@@ -38,18 +38,12 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 }
 
 pipeline {
-    agent {
-        label "Windows && Python3"
-    }
+    agent none
 
-    environment {
-        mypy_args = "--junit-xml=mypy.xml"
-        pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
-    }
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
 //        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
-        checkoutToSubdirectory("source")
+//         checkoutToSubdirectory("source")
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     triggers {
@@ -66,6 +60,24 @@ pipeline {
         string(name: 'URL_SUBFOLDER', defaultValue: "hathi_checksum_updater", description: 'The directory that the docs should be saved under')
     }
     stages {
+        stage("Getting Distribution Info"){
+           agent {
+                dockerfile {
+                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                    label 'linux && docker'
+                }
+            }
+
+            steps{
+                sh "python setup.py dist_info"
+            }
+            post{
+                success{
+                    stash includes: "HathiChecksumUpdater.dist-info/**", name: 'DIST-INFO'
+                    archiveArtifacts artifacts: "HathiChecksumUpdater.dist-info/**"
+                }
+            }
+        }
         stage("Configure") {
             options{
                 timeout(10)  // Timeout after 10 minutes. This shouldn't take this long but it hangs for some reason
@@ -74,45 +86,7 @@ pipeline {
                 PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
             }
             stages{
-                stage("Purge all existing data in workspace"){
-                    when{
-                        anyOf{
-                            equals expected: true, actual: params.FRESH_WORKSPACE
-                            triggeredBy "TimerTriggerCause"
-                        }
-                    }
-                    steps {
-                        deleteDir()
-                        dir("source"){
-                            checkout scm
-                        }
-                    }
-                }
-                stage("Stashing important files for later"){
-                    steps{
-                        dir("source"){
-                            stash includes: 'deployment.yml', name: "Deployment"
-                        }
-                    }
-                }
-                stage("Getting Distribution Info"){
-                    environment{
-                        PATH = "${tool 'CPython-3.7'};$PATH"
-                    }
-                    steps{
-                        dir("source"){
-                            bat "python setup.py dist_info"
-                        }
-                    }
-                    post{
-                        success{
-                            dir("source"){
-                                stash includes: "HathiChecksumUpdater.dist-info/**", name: 'DIST-INFO'
-                                archiveArtifacts artifacts: "HathiChecksumUpdater.dist-info/**"
-                            }
-                        }
-                    }
-                }
+
                 stage("Creating virtualenv for building"){
                     steps{
                         bat "python -m venv venv"
