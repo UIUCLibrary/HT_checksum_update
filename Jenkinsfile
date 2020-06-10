@@ -446,7 +446,6 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                                                 [pattern: "dist/", type: 'INCLUDE'],
                                                 [pattern: "certs/", type: 'INCLUDE'],
                                                 [pattern: 'build/', type: 'INCLUDE']
-                                                [pattern: 'build/', type: 'INCLUDE']
                                             ]
                                         )
                                     }
