@@ -476,7 +476,12 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                         unstash "DIST-INFO"
                         script{
                             def props = readProperties interpolate: true, file: "HathiChecksumUpdater.dist-info/METADATA"
-                            sh "devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME} && devpi push ${props.Name}==${props.Version} production/release"
+                            sh(
+                                label: "Pushing to DS_Jenkins/${env.BRANCH_NAME} index",
+                                script: """devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi
+                                           devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi
+                                           devpi push --index DS_Jenkins/${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} production/release --clientdir ${WORKSPACE}/devpi"""
+                            )
                         }
                     }
                     post{
