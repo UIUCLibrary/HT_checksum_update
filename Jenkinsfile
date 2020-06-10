@@ -239,7 +239,7 @@ pipeline {
                                 timeout(5){
                                     catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
                                         sh (script: '''mkdir -p logs
-                                                       mypy -p hathi_checksum --html-report reports/mypy_html | tee logs/mypy.log"
+                                                       mypy -p hathi_checksum --html-report reports/mypy_html | tee logs/mypy.log
                                         '''
                                         )
     //                                     bat "mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html"
