@@ -78,14 +78,15 @@ pipeline {
             }
         }
         stage("Building") {
-            agent {
-                dockerfile {
-                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
-                    label 'linux && docker'
-                }
-            }
+
             stages{
                 stage("Python Package"){
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                            label 'linux && docker'
+                        }
+                    }
                     steps {
                         timeout(5){
                             sh(
