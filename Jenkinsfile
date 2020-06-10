@@ -617,27 +617,5 @@ pipeline {
                 }
             }
         }
-
-    }
-    post{
-        cleanup{
-            script {
-                cleanWs(
-                    deleteDirs: true,
-                    disableDeferredWipeout: true,
-                    patterns: [
-                        [pattern: 'dist', type: 'INCLUDE'],
-                        [pattern: 'source', type: 'INCLUDE'],
-                        [pattern: 'reports', type: 'INCLUDE'],
-                        [pattern: 'logs', type: 'INCLUDE'],
-                        [pattern: 'certs', type: 'INCLUDE'],
-                        [pattern: '*tmp', type: 'INCLUDE'],
-                        ]
-                    )
-            }
-        }
-        failure{
-            echo "Pipeline failed. If the problem is old cached data, you might need to purge the testing environment. Try manually running the pipeline again with the parameter FRESH_WORKSPACE checked."
-        }
     }
 }
