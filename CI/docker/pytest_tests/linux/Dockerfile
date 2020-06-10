@@ -9,7 +9,8 @@ ADD requirements.txt  /tmp/
 ARG PYTHON_INDEX=https://devpi.library.illinois.edu/production/release
 RUN python -m pip install --upgrade pip &&  \
     pip install setuptools && \
-    pip install wheel
+    pip install wheel && \
+    pip wheel --wheel-dir=/wheels  lxml
 RUN pip wheel --wheel-dir=/wheels -r /tmp/requirements.txt -i ${PYTHON_INDEX} -v
 
 FROM python:${PYTHON_VERSION}
@@ -36,7 +37,8 @@ RUN pip install --no-index --find-links=/wheels \
                 coverage \
                 pytest-runner \
                 mypy \
-                pylint
+                pylint \
+                lxml
 #                sphinx \
 #                sphinx-argparse \
 #                tox \
