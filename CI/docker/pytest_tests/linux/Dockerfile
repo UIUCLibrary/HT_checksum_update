@@ -28,21 +28,21 @@ ENV PIP_TRUSTED_HOST="devpi.library.illinois.edu"
 ENV PIP_FIND_LINKS=/wheels
 
 RUN pip install --no-index --find-links=/wheels \
-    -r /tmp/requirements.txt
-#    && \
-#    pip install flake8 \
-#                pytest \
-#                pytest-cov \
-#                coverage \
-#                pytest-runner \
+    -r /tmp/requirements.txt \
+    && \
+    pip install flake8 \
+                pytest \
+                pytest-cov \
+                coverage \
+                pytest-runner \
+                mypy \
+                pylint
 #                sphinx \
 #                sphinx-argparse \
 #                tox \
-#                mypy \
 #                pytest_bdd \
 #                bandit \
 #                rinohtype \
-#                pylint && \
 #   pip install pykdu_compress --pre
 
 USER user
