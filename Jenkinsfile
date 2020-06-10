@@ -62,7 +62,7 @@ pipeline {
         stage("Getting Distribution Info"){
            agent {
                 dockerfile {
-                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                    filename 'CI/docker/python/linux/Dockerfile'
                     label 'linux && docker'
                 }
             }
@@ -83,7 +83,7 @@ pipeline {
                 stage("Python Package"){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                            filename 'CI/docker/python/linux/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -103,7 +103,7 @@ pipeline {
                     }
                     agent {
                         dockerfile {
-                            filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                            filename 'CI/docker/python/linux/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -147,7 +147,7 @@ pipeline {
                             }
                             agent {
                                 dockerfile {
-                                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                                    filename 'CI/docker/python/linux/Dockerfile'
                                     label 'linux && docker'
                                 }
                             }
@@ -173,7 +173,7 @@ pipeline {
                         stage("Run Flake8 Static Analysis") {
                             agent {
                                 dockerfile {
-                                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                                    filename 'CI/docker/python/linux/Dockerfile'
                                     label 'linux && docker'
                                 }
                             }
@@ -196,7 +196,7 @@ pipeline {
                         stage("DocTest"){
                             agent {
                                 dockerfile {
-                                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                                    filename 'CI/docker/python/linux/Dockerfile'
                                     label 'linux && docker'
                                 }
                             }
@@ -230,19 +230,18 @@ pipeline {
 //                             }
                             agent {
                                 dockerfile {
-                                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                                    filename 'CI/docker/python/linux/Dockerfile'
                                     label 'linux && docker'
                                 }
                             }
                             steps{
-//                                 bat "if not exist logs mkdir logs"
                                 timeout(5){
                                     catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
                                         sh (script: '''mkdir -p logs
+                                                       mkdir -p reports/mypy_html
                                                        mypy -p hathi_checksum --html-report reports/mypy_html | tee logs/mypy.log
                                         '''
                                         )
-    //                                     bat "mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html"
                                     }
                                 }
                             }
@@ -263,7 +262,7 @@ pipeline {
                 stage("Source and Wheel formats"){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                            filename 'CI/docker/python/linux/Dockerfile'
                             label 'linux && docker'
                         }
                     }
