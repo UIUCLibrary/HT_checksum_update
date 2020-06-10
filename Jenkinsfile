@@ -42,8 +42,6 @@ pipeline {
 
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
-//        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
-//         checkoutToSubdirectory("source")
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     triggers {
@@ -98,9 +96,6 @@ pipeline {
                     }
                 }
                 stage("Sphinx Documentation"){
-                    options{
-                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-                    }
                     agent {
                         dockerfile {
                             filename 'CI/docker/python/linux/Dockerfile'
@@ -108,18 +103,19 @@ pipeline {
                         }
                     }
                     steps{
-                        sh(
-                           label: "Building docs",
-                           script: '''mkdir -p logs
-                           python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log -c docs/source
-                            '''
-                        )
+                        timeout(5){
+                            sh(
+                               label: "Building docs",
+                               script: '''mkdir -p logs
+                               python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log -c docs/source
+                                '''
+                            )
+                        }
                     }
                     post{
                         always {
                             archiveArtifacts artifacts: "logs/build_sphinx.log"
                             recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log')])
-
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
@@ -211,8 +207,6 @@ pipeline {
                                         )
                                     }
                                 }
-
-//                                 bat "sphinx-build -b doctest source\\docs\\source build\\docs -d build/docs/.doctrees -w logs\\doctest.log -c source/docs/source"
                             }
                             post{
                                 always {
@@ -222,12 +216,6 @@ pipeline {
                             }
                         }
                         stage("MyPy"){
-//                             environment {
-//                                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-//                             }
-//                             options{
-//                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-//                             }
                             agent {
                                 dockerfile {
                                     filename 'CI/docker/python/linux/Dockerfile'
@@ -270,7 +258,6 @@ pipeline {
                         timeout(5){
                             sh "python setup.py sdist --format zip -d dist bdist_wheel -d dist"
                         }
-//                         bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
                         stash includes: 'dist/*.whl', name: "whl"
                         stash includes: 'dist/*.zip', name: "sdist"
 
@@ -292,7 +279,6 @@ pipeline {
                         }
                     }
                     steps{
-//                         bat "if not exist dist mkdir dist"
                         timeout(10){
                             bat(
                                 label: "Freezing to msi installer",
