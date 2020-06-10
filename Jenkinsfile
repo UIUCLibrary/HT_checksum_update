@@ -309,7 +309,6 @@ pipeline {
                     post{
                         success{
                             archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
-                            stash includes: 'dist/*.whl,dist/*.tar.gz,dist/*.zip', name: "PYTHON_PACKAGES"
                         }
                     }
                 }
@@ -594,7 +593,8 @@ pipeline {
                     }
                     steps {
                         unstash 'DOCS_ARCHIVE'
-                        unstash 'PYTHON_PACKAGES'
+                        unstash 'sdist'
+                        unstash 'whl'
                         sh(
                                 label: "Connecting to DevPi Server",
                                 script: 'devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi'
