@@ -139,28 +139,34 @@ pipeline {
         stage("Tests") {
 
             stages{
-                stage("Install Python Testing Tools"){
-                    environment {
-                        PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-                    }
-                    steps{
-                        bat "pip install tox mypy lxml pytest pytest-cov flake8"
-                    }
-                }
                 stage("Run Tests"){
                     parallel {
                         stage("Run Pytest Unit Tests"){
-                            options{
-                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
-                            }
+//                             options{
+//                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+//                             }
                             environment{
                                 junit_filename = "junit-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
-                                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+//                                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+                            }
+                            agent {
+                                dockerfile {
+                                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                                    label 'linux && docker'
+                                }
                             }
                             steps{
-                                bat "if not exist reports\\coverage mkdir reports\\coverage"
-                                 dir("source"){
-                                    bat "pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum"
+//                                 bat "if not exist reports\\coverage mkdir reports\\coverage"
+                                timeout(5){
+                                    catchError(buildResult: "UNSTABLE", message: 'pytest found issues', stageResult: "UNSTABLE") {
+                                        sh(
+                                           label: "Running pytest",
+                                           script: """mkdir -p reports/coverage
+                                                      pytest --junitxml=reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/coverage/ --cov=hathi_checksum
+                                                      """
+                                            )
+        //                                 bat "pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=hathi_checksum"
+                                    }
                                 }
                             }
                             post {
@@ -171,64 +177,81 @@ pipeline {
                             }
                         }
                         stage("Run Flake8 Static Analysis") {
-                            agent{
+                            agent {
                                 dockerfile {
-                                    filename 'CI/docker/pytest_tests/Dockerfile'
-                                    label "linux && docker"
-                                    dir 'source'
-                                    }
+                                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                                    label 'linux && docker'
+                                }
                             }
                             steps{
-                                script{
-                                    sh "mkdir -p logs"
-                                    try{
-                                        dir("source"){
-                                            sh "flake8 hathi_checksum --tee --output-file=${WORKSPACE}/logs/flake8.log"
-                                        }
-                                    } catch (exc) {
-                                        echo "flake8 found some warnings"
-                                    }
+                                catchError(buildResult: "SUCCESS", message: 'flake8 found issues', stageResult: "UNSTABLE") {
+                                    sh(
+                                        label: "Running flake8",
+                                        script: """mkdir -p logs
+                                                   flake8 hathi_checksum --tee --output-file=logs/flake8.log
+                                                   """
+                                    )
                                 }
                             }
                             post {
                                 always {
-                                    stash includes: "logs/flake8.log", name: 'FLAKE8_LOGS'
-                                    dir("source"){
-                                        unstash "FLAKE8_LOGS"
-                                        recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
-                                    }
+                                    recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                 }
                             }
                         }
                         stage("DocTest"){
-                            options{
-                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                            agent {
+                                dockerfile {
+                                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                                    label 'linux && docker'
+                                }
                             }
-                            environment {
-                                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-                            }
+//                             environment {
+//                                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+//                             }
                             steps{
-                                bat "sphinx-build -b doctest source\\docs\\source build\\docs -d build/docs/.doctrees -w logs\\doctest.log -c source/docs/source"
+                                timeout(5){
+                                    catchError(buildResult: "SUCCESS", message: 'Doctest found issues', stageResult: "UNSTABLE") {
+                                        sh(
+                                            label: "Running Doctest",
+                                            script: """mkdir -p logs
+                                                       python -m sphinx -b doctest docs/source build/docs -d build/docs/.doctrees -w logs/doctest.log -c docs/source
+                                                       """
+                                        )
+                                    }
+                                }
+
+//                                 bat "sphinx-build -b doctest source\\docs\\source build\\docs -d build/docs/.doctrees -w logs\\doctest.log -c source/docs/source"
                             }
                             post{
                                 always {
-                                    archiveArtifacts artifacts: 'logs\\doctest.log'
+                                    archiveArtifacts artifacts: 'logs/doctest.log'
                                     recordIssues(tools: [sphinxBuild(id: 'Doctest', name: 'DocTest', pattern: 'logs/doctest.log')])
                                 }
                             }
                         }
                         stage("MyPy"){
-                            environment {
-                                PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
-                            }
-                            options{
-                               timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+//                             environment {
+//                                 PATH = "${WORKSPACE}\\venv\\Scripts;$PATH"
+//                             }
+//                             options{
+//                                timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+//                             }
+                            agent {
+                                dockerfile {
+                                    filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                                    label 'linux && docker'
+                                }
                             }
                             steps{
-                                bat "if not exist logs mkdir logs"
-                                dir("source") {
+//                                 bat "if not exist logs mkdir logs"
+                                timeout(5){
                                     catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
-                                        bat "mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html"
+                                        sh (script: '''mkdir -p logs
+                                        mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html
+                                        '''
+                                        )
+    //                                     bat "mypy -p hathi_checksum --html-report ${WORKSPACE}/reports/mypy_html"
                                     }
                                 }
                             }
