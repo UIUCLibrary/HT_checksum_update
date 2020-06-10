@@ -261,13 +261,17 @@ pipeline {
 
             parallel {
                 stage("Source and Wheel formats"){
-                    options{
-                       timeout(5)  // Timeout after 5 minutes. This shouldn't take this long but it hangs for some reason
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/pytest_tests/linux/Dockerfile'
+                            label 'linux && docker'
+                        }
                     }
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                        timeout(5){
+                            sh "python setup.py sdist --format zip -d dist bdist_wheel -d dist"
                         }
+//                         bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist --format zip -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
                         stash includes: 'dist/*.whl', name: "whl 3.6"
                         stash includes: 'dist/*.zip', name: "sdist"
 
