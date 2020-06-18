@@ -461,6 +461,7 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                             branch "master"
                         }
                         beforeAgent true
+                        beforeInput true
                     }
                     agent {
                         dockerfile {
