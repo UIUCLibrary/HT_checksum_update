@@ -473,6 +473,9 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                     input {
                         message 'Release to DevPi Production?'
                     }
+                    options{
+                        timeout(time: 1, unit: 'DAYS')
+                    }
                     steps {
                         unstash "DIST-INFO"
                         script{
