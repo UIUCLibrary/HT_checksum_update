@@ -88,9 +88,6 @@ pipeline {
     options {
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
-    triggers {
-       parameterizedCron '@daily % DEPLOY_DEVPI=true; PACKAGE_CX_FREEZE=true'
-    }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
         booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: false, description: "Create a package with CX_Freeze")
