@@ -2,7 +2,7 @@
 import org.ds.*
 @Library(["devpi", "PythonHelpers"]) _
 
-def CONFIGURATIONS = [
+CONFIGURATIONS = [
     "3.6": [
             package_testing: [
                 whl: [
