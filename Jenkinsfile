@@ -15,6 +15,13 @@ def getDevPiStagingIndex(){
     }
 }
 
+DEVPI_CONFIG = [
+    index: getDevPiStagingIndex(),
+    server: 'https://devpi.library.illinois.edu',
+    credentialsId: 'DS_devpi',
+]
+
+
 CONFIGURATIONS = [
     "3.6": [
             package_testing: [
