@@ -279,6 +279,13 @@ pipeline {
                     when{
                         equals expected: true, actual: params.TEST_RUN_TOX
                     }
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/python/linux/tox/Dockerfile'
+                            label 'linux && docker'
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                        }
+                    }
                     steps {
                         echo "Running tox tests"
                     }
