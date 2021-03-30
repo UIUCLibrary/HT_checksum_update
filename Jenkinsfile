@@ -486,7 +486,7 @@ pipeline {
                             def devpi = load('ci/jenkins/scripts/devpi.groovy')
                             devpi.upload(
                                 server: DEVPI_CONFIG.server,
-                                credentialsId: DEVPI_CONFIG.credentialsId
+                                credentialsId: DEVPI_CONFIG.credentialsId,
                                 index: getDevPiStagingIndex(),
                                 clientDir: './devpi'
                             )
