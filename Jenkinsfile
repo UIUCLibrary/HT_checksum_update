@@ -405,10 +405,10 @@ pipeline {
                     }
                     steps{
                         timeout(5){
-                            sh "python setup.py sdist --format zip -d dist bdist_wheel -d dist"
+                            sh "python setup.py sdist -d dist bdist_wheel -d dist"
                         }
                         stash includes: 'dist/*.whl', name: "whl"
-                        stash includes: 'dist/*.zip', name: "sdist"
+                        stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
 
                     }
                     post{
