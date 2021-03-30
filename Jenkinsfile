@@ -91,6 +91,8 @@ pipeline {
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
         booleanParam(name: 'RUN_CHECKS', defaultValue: true, description: 'Run checks on code')
+//         TODO: set defaultValue to false
+        booleanParam(name: 'TEST_RUN_TOX', defaultValue: true, description: 'Run Tox Tests')
         booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: false, description: "Create a package with CX_Freeze")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -214,12 +216,6 @@ pipeline {
                                     }
                                 }
                                 stage("Run Flake8 Static Analysis") {
-//                                     agent {
-//                                         dockerfile {
-//                                             filename 'CI/docker/python/linux/jenkins/Dockerfile'
-//                                             label 'linux && docker'
-//                                         }
-//                                     }
                                     steps{
                                         catchError(buildResult: "SUCCESS", message: 'flake8 found issues', stageResult: "UNSTABLE") {
                                             sh(
@@ -237,12 +233,6 @@ pipeline {
                                     }
                                 }
                                 stage("DocTest"){
-//                                     agent {
-//                                         dockerfile {
-//                                             filename 'CI/docker/python/linux/jenkins/Dockerfile'
-//                                             label 'linux && docker'
-//                                         }
-//                                     }
                                     steps{
                                         timeout(5){
                                             catchError(buildResult: "SUCCESS", message: 'Doctest found issues', stageResult: "UNSTABLE") {
@@ -263,12 +253,6 @@ pipeline {
                                     }
                                 }
                                 stage("MyPy"){
-//                                     agent {
-//                                         dockerfile {
-//                                             filename 'CI/docker/python/linux/jenkins/Dockerfile'
-//                                             label 'linux && docker'
-//                                         }
-//                                     }
                                     steps{
                                         timeout(5){
                                             catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
@@ -289,6 +273,14 @@ pipeline {
                                 }
                             }
                         }
+                    }
+                }
+                stage('Run Tox'){
+                    when{
+                        equals expected: true, actual: params.TEST_RUN_TOX
+                    }
+                    steps {
+                        echo "Running tox tests"
                     }
                 }
             }
