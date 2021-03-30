@@ -101,7 +101,7 @@ pipeline {
         stage("Getting Distribution Info"){
            agent {
                 dockerfile {
-                    filename 'CI/docker/python/linux/Dockerfile'
+                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
                     label 'linux && docker'
                 }
             }
@@ -122,7 +122,7 @@ pipeline {
                 stage("Python Package"){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/linux/Dockerfile'
+                            filename 'CI/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -139,7 +139,7 @@ pipeline {
                 stage("Sphinx Documentation"){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/linux/Dockerfile'
+                            filename 'CI/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -184,7 +184,7 @@ pipeline {
                             }
                             agent {
                                 dockerfile {
-                                    filename 'CI/docker/python/linux/Dockerfile'
+                                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
                                     label 'linux && docker'
                                 }
                             }
@@ -210,7 +210,7 @@ pipeline {
                         stage("Run Flake8 Static Analysis") {
                             agent {
                                 dockerfile {
-                                    filename 'CI/docker/python/linux/Dockerfile'
+                                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
                                     label 'linux && docker'
                                 }
                             }
@@ -233,7 +233,7 @@ pipeline {
                         stage("DocTest"){
                             agent {
                                 dockerfile {
-                                    filename 'CI/docker/python/linux/Dockerfile'
+                                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
                                     label 'linux && docker'
                                 }
                             }
@@ -259,7 +259,7 @@ pipeline {
                         stage("MyPy"){
                             agent {
                                 dockerfile {
-                                    filename 'CI/docker/python/linux/Dockerfile'
+                                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
                                     label 'linux && docker'
                                 }
                             }
@@ -291,7 +291,7 @@ pipeline {
                 stage("Source and Wheel formats"){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/linux/Dockerfile'
+                            filename 'CI/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -316,7 +316,7 @@ pipeline {
                     }
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/windows/Dockerfile'
+                            filename 'CI/docker/python/windows/jenkins/Dockerfile'
                             label "windows && docker"
                         }
                     }
