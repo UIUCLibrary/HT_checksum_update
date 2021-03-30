@@ -2,6 +2,15 @@
 import org.ds.*
 @Library(["devpi", "PythonHelpers"]) _
 
+def getDevPiStagingIndex(){
+
+    if (env.TAG_NAME?.trim()){
+        return "tag_staging"
+    } else{
+        return "${env.BRANCH_NAME}_staging"
+    }
+}
+
 CONFIGURATIONS = [
     "3.6": [
             package_testing: [
@@ -81,6 +90,69 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 
     }
 }
+
+def startup(){
+    stage("Getting Distribution Info"){
+        node('linux && docker') {
+            ws{
+                checkout scm
+                try{
+                    docker.image('python').inside {
+                        timeout(2){
+                            withEnv(['PIP_NO_CACHE_DIR=off']) {
+                                sh(
+                                   label: "Running setup.py with dist_info",
+                                   script: """python --version
+                                              python setup.py dist_info
+                                           """
+                                )
+                            }
+                            stash includes: "*.dist-info/**", name: 'DIST-INFO'
+                            archiveArtifacts artifacts: "*.dist-info/**"
+                        }
+                    }
+                } finally{
+                    cleanWs(
+                        deleteDirs: true,
+                        patterns: [
+                            [pattern: "*.dist-info/", type: 'INCLUDE'],
+                            [pattern: "**/__pycache__", type: 'INCLUDE'],
+                        ]
+                    )
+                }
+            }
+        }
+    }
+}
+
+def get_props(){
+    stage("Reading Package Metadata"){
+        node() {
+            try{
+                unstash "DIST-INFO"
+                def metadataFile = findFiles(excludes: '', glob: '*.dist-info/METADATA')[0]
+                def package_metadata = readProperties interpolate: true, file: metadataFile.path
+                echo """Metadata:
+
+    Name      ${package_metadata.Name}
+    Version   ${package_metadata.Version}
+    """
+                return package_metadata
+            } finally {
+                cleanWs(
+                    patterns: [
+                            [pattern: '*.dist-info/**', type: 'INCLUDE'],
+                        ],
+                    notFailBuild: true,
+                    deleteDirs: true
+                )
+            }
+        }
+    }
+}
+
+startup()
+props = get_props()
 
 pipeline {
     agent none
@@ -163,9 +235,7 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            unstash "DIST-INFO"
                             script{
-                                def props = readProperties interpolate: true, file: "HathiChecksumUpdater.dist-info/METADATA"
                                 def DOC_ZIP_FILENAME = "${props.Name}-${props.Version}.doc.zip"
                                 zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                                 stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
@@ -396,130 +466,26 @@ pipeline {
                 timestamps()
                 lock("hathi_checksum-devpi")
             }
-            environment{
-                DEVPI = credentials("DS_devpi")
-            }
             stages{
                 stage("Deploy to Devpi Staging") {
                     agent {
                         dockerfile {
-                            filename 'ci/docker/deploy/devpi/deploy/Dockerfile'
-                            label 'linux&&docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                          }
+                            filename 'ci/docker/python/linux/tox/Dockerfile'
+                            label 'linux && docker'
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                        }
                     }
                     steps {
-                        unstash 'DOCS_ARCHIVE'
-                        unstash 'sdist'
-                        unstash 'whl'
-                        sh(
-                                label: "Connecting to DevPi Server",
-                                script: 'devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi'
-                            )
-                        sh(
-                            label: "Uploading to DevPi Staging",
-                            script: """devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi
-devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
-                        )
-                    }
-                    post{
-                        cleanup{
-                            cleanWs(
-                                deleteDirs: true,
-                                patterns: [
-                                    [pattern: "dist/", type: 'INCLUDE'],
-                                    [pattern: "devpi/", type: 'INCLUDE'],
-                                    [pattern: 'build/', type: 'INCLUDE']
-                                ]
-                            )
-                        }
-                    }
-                }
-                stage("Test DevPi packages") {
-                    matrix {
-                        axes {
-                            axis {
-                                name 'FORMAT'
-                                values 'zip', "whl"
-                            }
-                            axis {
-                                name 'PYTHON_VERSION'
-                                values '3.6', "3.7", "3.8"
-                            }
-                        }
-                        agent {
-                          dockerfile {
-                            additionalBuildArgs "--build-arg PYTHON_DOCKER_IMAGE_BASE=${CONFIGURATIONS[PYTHON_VERSION].test_docker_image}"
-                            filename 'ci/docker/deploy/devpi/test/windows/Dockerfile'
-                            label 'windows && docker'
-                          }
-                        }
-                        stages{
-                            stage("Testing DevPi Package"){
-                                options{
-                                    timeout(10)
-                                }
-                                steps{
-                                    script{
-                                        unstash "DIST-INFO"
-                                        def props = readProperties interpolate: true, file: 'HathiChecksumUpdater.dist-info/METADATA'
-                                        bat(
-                                            label: "Connecting to Devpi Server",
-                                            script: "devpi use https://devpi.library.illinois.edu --clientdir certs\\ && devpi login %DEVPI_USR% --password %DEVPI_PSW% --clientdir certs\\ && devpi use ${env.BRANCH_NAME}_staging --clientdir certs\\"
-                                        )
-                                        bat(
-                                            label: "Testing ${FORMAT} package stored on DevPi with Python version ${PYTHON_VERSION}",
-                                            script: "devpi test --index ${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} -s ${FORMAT} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v"
-                                        )
-                                    }
-                                }
-                                post{
-                                    cleanup{
-                                        cleanWs(
-                                            deleteDirs: true,
-                                            patterns: [
-                                                [pattern: "dist/", type: 'INCLUDE'],
-                                                [pattern: "certs/", type: 'INCLUDE'],
-                                                [pattern: 'build/', type: 'INCLUDE']
-                                            ]
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                stage("Deploy to DevPi Production") {
-                    when {
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-                            branch "master"
-                        }
-                        beforeAgent true
-                        beforeInput true
-                    }
-                    agent {
-                        dockerfile {
-                            filename 'ci/docker/deploy/devpi/deploy/Dockerfile'
-                            label 'linux&&docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                          }
-                    }
-                    input {
-                        message 'Release to DevPi Production?'
-                    }
-                    options{
-                        timeout(time: 1, unit: 'DAYS')
-                    }
-                    steps {
-                        unstash "DIST-INFO"
+                        unstash "sdist"
+                        unstash "whl"
+                        unstash "DOCS_ARCHIVE"
                         script{
-                            def props = readProperties interpolate: true, file: "HathiChecksumUpdater.dist-info/METADATA"
-                            sh(
-                                label: "Pushing to DS_Jenkins/${env.BRANCH_NAME} index",
-                                script: """devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi
-                                           devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi
-                                           devpi push --index DS_Jenkins/${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} production/release --clientdir ${WORKSPACE}/devpi"""
+                            def devpi = load('ci/jenkins/scripts/devpi.groovy')
+                            devpi.upload(
+                                server: 'https://devpi.library.illinois.edu',
+                                credentialsId: 'DS_devpi',
+                                index: getDevPiStagingIndex(),
+                                clientDir: './devpi'
                             )
                         }
                     }
@@ -528,22 +494,20 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
             post{
                 success{
                     node('linux && docker') {
-                       script{
-                            docker.build("uiucpresconpackager:devpi.${env.BUILD_ID}",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                unstash "DIST-INFO"
-                                def props = readProperties interpolate: true, file: 'HathiChecksumUpdater.dist-info/METADATA'
-                                sh(
-                                    label: "Connecting to DevPi Server",
-                                    script: 'devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi'
-                                )
-                                sh(
-                                    label: "Selecting to DevPi index",
-                                    script: "devpi use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi"
-                                )
-                                sh(
-                                    label: "Pushing package to DevPi index",
-                                    script:  "devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ${WORKSPACE}/devpi"
-                                )
+                        script{
+                            if (!env.TAG_NAME?.trim()){
+                                checkout scm
+                                def devpi = load('ci/jenkins/scripts/devpi.groovy')
+                                docker.build("uiucpresconpackager:devpi",'-f ./ci/docker/python/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
+                                    devpi.pushPackageToIndex(
+                                        pkgName: props.Name,
+                                        pkgVersion: props.Version,
+                                        server: 'https://devpi.library.illinois.edu',
+                                        indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                        indexDestination: "DS_Jenkins/${env.BRANCH_NAME}",
+                                        credentialsId: 'DS_devpi'
+                                    )
+                                }
                             }
                        }
                     }
@@ -551,29 +515,16 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                 cleanup{
                     node('linux && docker') {
                        script{
-                            docker.build("uiucpresconpackager:devpi.${env.BUILD_ID}",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                unstash "DIST-INFO"
-                                def props = readProperties interpolate: true, file: 'HathiChecksumUpdater.dist-info/METADATA'
-                                sh(
-                                    label: "Connecting to DevPi Server",
-                                    script: 'devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi'
-                                )
-                                sh(
-                                    label: "Selecting to DevPi index",
-                                    script: "devpi use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi"
-                                )
-                                sh(
-                                    label: "Removing package to DevPi index",
-                                    script: "devpi remove -y ${props.Name}==${props.Version} --clientdir ${WORKSPACE}/devpi"
-                                )
-                                cleanWs(
-                                    deleteDirs: true,
-                                    patterns: [
-                                        [pattern: "dist/", type: 'INCLUDE'],
-                                        [pattern: "devpi/", type: 'INCLUDE'],
-                                        [pattern: "uiucprescon.packager.dist-info/", type: 'INCLUDE'],
-                                        [pattern: 'build/', type: 'INCLUDE']
-                                    ]
+                            checkout scm
+                            def devpi = load('ci/jenkins/scripts/devpi.groovy')
+                            docker.build("uiucpresconpackager:devpi",'-f ./ci/docker/python/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
+                                devpi.removePackage(
+                                    pkgName: props.Name,
+                                    pkgVersion: props.Version,
+                                    index: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                    server: 'https://devpi.library.illinois.edu',
+                                    credentialsId: 'DS_devpi',
+
                                 )
                             }
                        }
@@ -581,6 +532,188 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                 }
             }
         }
+
+//                 stage("Deploy to Devpi Staging") {
+//                     agent {
+//                         dockerfile {
+//                             filename 'ci/docker/deploy/devpi/deploy/Dockerfile'
+//                             label 'linux&&docker'
+//                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                           }
+//                     }
+//                     steps {
+//                         unstash 'DOCS_ARCHIVE'
+//                         unstash 'sdist'
+//                         unstash 'whl'
+//                         sh(
+//                                 label: "Connecting to DevPi Server",
+//                                 script: 'devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi'
+//                             )
+//                         sh(
+//                             label: "Uploading to DevPi Staging",
+//                             script: """devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi
+// devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
+//                         )
+//                     }
+//                     post{
+//                         cleanup{
+//                             cleanWs(
+//                                 deleteDirs: true,
+//                                 patterns: [
+//                                     [pattern: "dist/", type: 'INCLUDE'],
+//                                     [pattern: "devpi/", type: 'INCLUDE'],
+//                                     [pattern: 'build/', type: 'INCLUDE']
+//                                 ]
+//                             )
+//                         }
+//                     }
+//                 }
+//                 stage("Test DevPi packages") {
+//                     matrix {
+//                         axes {
+//                             axis {
+//                                 name 'FORMAT'
+//                                 values 'zip', "whl"
+//                             }
+//                             axis {
+//                                 name 'PYTHON_VERSION'
+//                                 values '3.6', "3.7", "3.8"
+//                             }
+//                         }
+//                         agent {
+//                           dockerfile {
+//                             additionalBuildArgs "--build-arg PYTHON_DOCKER_IMAGE_BASE=${CONFIGURATIONS[PYTHON_VERSION].test_docker_image}"
+//                             filename 'ci/docker/deploy/devpi/test/windows/Dockerfile'
+//                             label 'windows && docker'
+//                           }
+//                         }
+//                         stages{
+//                             stage("Testing DevPi Package"){
+//                                 options{
+//                                     timeout(10)
+//                                 }
+//                                 steps{
+//                                     script{
+//                                         unstash "DIST-INFO"
+//                                         def props = readProperties interpolate: true, file: 'HathiChecksumUpdater.dist-info/METADATA'
+//                                         bat(
+//                                             label: "Connecting to Devpi Server",
+//                                             script: "devpi use https://devpi.library.illinois.edu --clientdir certs\\ && devpi login %DEVPI_USR% --password %DEVPI_PSW% --clientdir certs\\ && devpi use ${env.BRANCH_NAME}_staging --clientdir certs\\"
+//                                         )
+//                                         bat(
+//                                             label: "Testing ${FORMAT} package stored on DevPi with Python version ${PYTHON_VERSION}",
+//                                             script: "devpi test --index ${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} -s ${FORMAT} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v"
+//                                         )
+//                                     }
+//                                 }
+//                                 post{
+//                                     cleanup{
+//                                         cleanWs(
+//                                             deleteDirs: true,
+//                                             patterns: [
+//                                                 [pattern: "dist/", type: 'INCLUDE'],
+//                                                 [pattern: "certs/", type: 'INCLUDE'],
+//                                                 [pattern: 'build/', type: 'INCLUDE']
+//                                             ]
+//                                         )
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//                 stage("Deploy to DevPi Production") {
+//                     when {
+//                         allOf{
+//                             equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+//                             branch "master"
+//                         }
+//                         beforeAgent true
+//                         beforeInput true
+//                     }
+//                     agent {
+//                         dockerfile {
+//                             filename 'ci/docker/deploy/devpi/deploy/Dockerfile'
+//                             label 'linux&&docker'
+//                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                           }
+//                     }
+//                     input {
+//                         message 'Release to DevPi Production?'
+//                     }
+//                     options{
+//                         timeout(time: 1, unit: 'DAYS')
+//                     }
+//                     steps {
+//                         unstash "DIST-INFO"
+//                         script{
+//                             def props = readProperties interpolate: true, file: "HathiChecksumUpdater.dist-info/METADATA"
+//                             sh(
+//                                 label: "Pushing to DS_Jenkins/${env.BRANCH_NAME} index",
+//                                 script: """devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi
+//                                            devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi
+//                                            devpi push --index DS_Jenkins/${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} production/release --clientdir ${WORKSPACE}/devpi"""
+//                             )
+//                         }
+//                     }
+//                 }
+//             }
+//             post{
+//                 success{
+//                     node('linux && docker') {
+//                        script{
+//                             docker.build("uiucpresconpackager:devpi.${env.BUILD_ID}",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+//                                 unstash "DIST-INFO"
+//                                 def props = readProperties interpolate: true, file: 'HathiChecksumUpdater.dist-info/METADATA'
+//                                 sh(
+//                                     label: "Connecting to DevPi Server",
+//                                     script: 'devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi'
+//                                 )
+//                                 sh(
+//                                     label: "Selecting to DevPi index",
+//                                     script: "devpi use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi"
+//                                 )
+//                                 sh(
+//                                     label: "Pushing package to DevPi index",
+//                                     script:  "devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ${WORKSPACE}/devpi"
+//                                 )
+//                             }
+//                        }
+//                     }
+//                 }
+//                 cleanup{
+//                     node('linux && docker') {
+//                        script{
+//                             docker.build("uiucpresconpackager:devpi.${env.BUILD_ID}",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+//                                 unstash "DIST-INFO"
+//                                 def props = readProperties interpolate: true, file: 'HathiChecksumUpdater.dist-info/METADATA'
+//                                 sh(
+//                                     label: "Connecting to DevPi Server",
+//                                     script: 'devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi'
+//                                 )
+//                                 sh(
+//                                     label: "Selecting to DevPi index",
+//                                     script: "devpi use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi"
+//                                 )
+//                                 sh(
+//                                     label: "Removing package to DevPi index",
+//                                     script: "devpi remove -y ${props.Name}==${props.Version} --clientdir ${WORKSPACE}/devpi"
+//                                 )
+//                                 cleanWs(
+//                                     deleteDirs: true,
+//                                     patterns: [
+//                                         [pattern: "dist/", type: 'INCLUDE'],
+//                                         [pattern: "devpi/", type: 'INCLUDE'],
+//                                         [pattern: "uiucprescon.packager.dist-info/", type: 'INCLUDE'],
+//                                         [pattern: 'build/', type: 'INCLUDE']
+//                                     ]
+//                                 )
+//                             }
+//                        }
+//                     }
+//                 }
+//             }
+//         }
         stage("Deployment"){
             parallel{
 
