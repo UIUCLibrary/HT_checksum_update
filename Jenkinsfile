@@ -493,8 +493,8 @@ pipeline {
                         script{
                             def devpi = load('ci/jenkins/scripts/devpi.groovy')
                             devpi.upload(
-                                server: 'https://devpi.library.illinois.edu',
-                                credentialsId: 'DS_devpi',
+                                server: DEVPI_CONFIG.server,
+                                credentialsId: DEVPI_CONFIG.credentialsId
                                 index: getDevPiStagingIndex(),
                                 clientDir: './devpi'
                             )
@@ -611,10 +611,10 @@ pipeline {
                                     devpi.pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
-                                        server: 'https://devpi.library.illinois.edu',
+                                        server: DEVPI_CONFIG.server,
                                         indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
                                         indexDestination: "DS_Jenkins/${env.BRANCH_NAME}",
-                                        credentialsId: 'DS_devpi'
+                                        credentialsId: DEVPI_CONFIG.credentialsId
                                     )
                                 }
                             }
@@ -631,9 +631,8 @@ pipeline {
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
                                     index: "DS_Jenkins/${getDevPiStagingIndex()}",
-                                    server: 'https://devpi.library.illinois.edu',
-                                    credentialsId: 'DS_devpi',
-
+                                    server: DEVPI_CONFIG.server,
+                                    credentialsId: DEVPI_CONFIG.credentialsId
                                 )
                             }
                        }
