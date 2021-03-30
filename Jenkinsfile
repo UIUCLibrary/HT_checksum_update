@@ -104,7 +104,7 @@ pipeline {
         stage("Getting Distribution Info"){
            agent {
                 dockerfile {
-                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
+                    filename 'ci/docker/python/linux/jenkins/Dockerfile'
                     label 'linux && docker'
                 }
             }
@@ -125,7 +125,7 @@ pipeline {
                 stage("Python Package"){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/linux/jenkins/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -142,7 +142,7 @@ pipeline {
                 stage("Sphinx Documentation"){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/linux/jenkins/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -184,7 +184,7 @@ pipeline {
                 stage('Code Quality'){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/linux/jenkins/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -281,7 +281,7 @@ pipeline {
                     }
 //                     agent {
 //                         dockerfile {
-//                             filename 'CI/docker/python/linux/tox/Dockerfile'
+//                             filename 'ci/docker/python/linux/tox/Dockerfile'
 //                             label 'linux && docker'
 //                             additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
 //                         }
@@ -292,7 +292,7 @@ pipeline {
                             def tox
                             node(){
                                 checkout scm
-                                tox = load('CI/jenkins/scripts/tox.groovy')
+                                tox = load('ci/jenkins/scripts/tox.groovy')
                             }
                             def windowsJobs = [:]
                             def linuxJobs = [:]
@@ -302,23 +302,22 @@ pipeline {
                                         linuxJobs = tox.getToxTestsParallel(
                                                 envNamePrefix: 'Tox Linux',
                                                 label: 'linux && docker',
-                                                dockerfile: 'CI/docker/python/linux/tox/Dockerfile',
+                                                dockerfile: 'ci/docker/python/linux/tox/Dockerfile',
                                                 dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                             )
                                     },
-//                                     'Windows':{
-//                                         windowsJobs = tox.getToxTestsParallel(
-//                                                 envNamePrefix: 'Tox Windows',
-//                                                 label: 'windows && docker',
-//                                                 dockerfile: 'ci/docker/python/windows/tox/Dockerfile',
-//                                                 dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-//                                          )
-//                                     },
+                                    'Windows':{
+                                        windowsJobs = tox.getToxTestsParallel(
+                                                envNamePrefix: 'Tox Windows',
+                                                label: 'windows && docker',
+                                                dockerfile: 'ci/docker/python/windows/tox/Dockerfile',
+                                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                         )
+                                    },
                                     failFast: true
                                 )
                             }
-                            parallel(linuxJobs)
-//                             parallel(windowsJobs + linuxJobs)
+                            parallel(windowsJobs + linuxJobs)
                         }
                     }
                 }
@@ -330,7 +329,7 @@ pipeline {
                 stage("Source and Wheel formats"){
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/linux/jenkins/Dockerfile'
+                            filename 'ci/docker/python/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
@@ -355,7 +354,7 @@ pipeline {
                     }
                     agent {
                         dockerfile {
-                            filename 'CI/docker/python/windows/jenkins/Dockerfile'
+                            filename 'ci/docker/python/windows/jenkins/Dockerfile'
                             label "windows && docker"
                         }
                     }
@@ -404,7 +403,7 @@ pipeline {
                 stage("Deploy to Devpi Staging") {
                     agent {
                         dockerfile {
-                            filename 'CI/docker/deploy/devpi/deploy/Dockerfile'
+                            filename 'ci/docker/deploy/devpi/deploy/Dockerfile'
                             label 'linux&&docker'
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                           }
@@ -451,7 +450,7 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                         agent {
                           dockerfile {
                             additionalBuildArgs "--build-arg PYTHON_DOCKER_IMAGE_BASE=${CONFIGURATIONS[PYTHON_VERSION].test_docker_image}"
-                            filename 'CI/docker/deploy/devpi/test/windows/Dockerfile'
+                            filename 'ci/docker/deploy/devpi/test/windows/Dockerfile'
                             label 'windows && docker'
                           }
                         }
@@ -501,7 +500,7 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                     }
                     agent {
                         dockerfile {
-                            filename 'CI/docker/deploy/devpi/deploy/Dockerfile'
+                            filename 'ci/docker/deploy/devpi/deploy/Dockerfile'
                             label 'linux&&docker'
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                           }
@@ -530,7 +529,7 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                 success{
                     node('linux && docker') {
                        script{
-                            docker.build("uiucpresconpackager:devpi.${env.BUILD_ID}",'-f ./CI/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+                            docker.build("uiucpresconpackager:devpi.${env.BUILD_ID}",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
                                 unstash "DIST-INFO"
                                 def props = readProperties interpolate: true, file: 'HathiChecksumUpdater.dist-info/METADATA'
                                 sh(
@@ -552,7 +551,7 @@ devpi upload --from-dir dist --clientdir ${WORKSPACE}/devpi"""
                 cleanup{
                     node('linux && docker') {
                        script{
-                            docker.build("uiucpresconpackager:devpi.${env.BUILD_ID}",'-f ./CI/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+                            docker.build("uiucpresconpackager:devpi.${env.BUILD_ID}",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
                                 unstash "DIST-INFO"
                                 def props = readProperties interpolate: true, file: 'HathiChecksumUpdater.dist-info/METADATA'
                                 sh(

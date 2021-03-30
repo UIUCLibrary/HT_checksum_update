@@ -1,5 +1,5 @@
 FROM ubuntu:20.04 as wheel_builder_base
-COPY CI/docker/python/linux/tox/apt-packages.txt /tmp/
+COPY ci/docker/python/linux/tox/apt-packages.txt /tmp/
 RUN apt update && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa && \
