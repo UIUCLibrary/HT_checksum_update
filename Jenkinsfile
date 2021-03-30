@@ -90,6 +90,7 @@ pipeline {
     }
     parameters {
         string(name: "PROJECT_NAME", defaultValue: "HathiTrust Checksum Updater", description: "Name given to the project")
+        booleanParam(name: 'RUN_CHECKS', defaultValue: true, description: 'Run checks on code')
         booleanParam(name: "PACKAGE_CX_FREEZE", defaultValue: false, description: "Create a package with CX_Freeze")
         booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Create SCCM deployment package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -174,110 +175,117 @@ pipeline {
             }
         }
         stage("Tests") {
-
+            when{
+                equals expected: true, actual: params.RUN_CHECKS
+            }
             stages{
-                stage("Run Tests"){
-                    parallel {
-                        stage("Run Pytest Unit Tests"){
-                            environment{
-                                junit_filename = "junit-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
-                            }
-                            agent {
-                                dockerfile {
-                                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
-                                    label 'linux && docker'
-                                }
-                            }
-                            steps{
-                                timeout(5){
-                                    catchError(buildResult: "UNSTABLE", message: 'pytest found issues', stageResult: "UNSTABLE") {
-                                        sh(
-                                           label: "Running pytest",
-                                           script: """mkdir -p reports/coverage
-                                                      pytest --junitxml=reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/coverage/ --cov=hathi_checksum
-                                                      """
-                                        )
+                stage('Code Quality'){
+                    agent {
+                        dockerfile {
+                            filename 'CI/docker/python/linux/jenkins/Dockerfile'
+                            label 'linux && docker'
+                        }
+                    }
+                    stages{
+                        stage("Run Tests"){
+                            parallel {
+                                stage("Run Pytest Unit Tests"){
+                                    environment{
+                                        junit_filename = "junit-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
+                                    }
+
+                                    steps{
+                                        timeout(5){
+                                            catchError(buildResult: "UNSTABLE", message: 'pytest found issues', stageResult: "UNSTABLE") {
+                                                sh(
+                                                   label: "Running pytest",
+                                                   script: """mkdir -p reports/coverage
+                                                              pytest --junitxml=reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/coverage/ --cov=hathi_checksum
+                                                              """
+                                                )
+                                            }
+                                        }
+                                    }
+                                    post {
+                                        always {
+                                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                                            junit "reports/pytest/${env.junit_filename}"
+                                        }
                                     }
                                 }
-                            }
-                            post {
-                                always {
-                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
-                                    junit "reports/pytest/${env.junit_filename}"
-                                }
-                            }
-                        }
-                        stage("Run Flake8 Static Analysis") {
-                            agent {
-                                dockerfile {
-                                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
-                                    label 'linux && docker'
-                                }
-                            }
-                            steps{
-                                catchError(buildResult: "SUCCESS", message: 'flake8 found issues', stageResult: "UNSTABLE") {
-                                    sh(
-                                        label: "Running flake8",
-                                        script: """mkdir -p logs
-                                                   flake8 hathi_checksum --tee --output-file=logs/flake8.log
-                                                   """
-                                    )
-                                }
-                            }
-                            post {
-                                always {
-                                    recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
-                                }
-                            }
-                        }
-                        stage("DocTest"){
-                            agent {
-                                dockerfile {
-                                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
-                                    label 'linux && docker'
-                                }
-                            }
-                            steps{
-                                timeout(5){
-                                    catchError(buildResult: "SUCCESS", message: 'Doctest found issues', stageResult: "UNSTABLE") {
-                                        sh(
-                                            label: "Running Doctest",
-                                            script: """mkdir -p logs
-                                                       python -m sphinx -b doctest docs/source build/docs -d build/docs/.doctrees -w logs/doctest.log -c docs/source
-                                                       """
-                                        )
+                                stage("Run Flake8 Static Analysis") {
+//                                     agent {
+//                                         dockerfile {
+//                                             filename 'CI/docker/python/linux/jenkins/Dockerfile'
+//                                             label 'linux && docker'
+//                                         }
+//                                     }
+                                    steps{
+                                        catchError(buildResult: "SUCCESS", message: 'flake8 found issues', stageResult: "UNSTABLE") {
+                                            sh(
+                                                label: "Running flake8",
+                                                script: """mkdir -p logs
+                                                           flake8 hathi_checksum --tee --output-file=logs/flake8.log
+                                                           """
+                                            )
+                                        }
+                                    }
+                                    post {
+                                        always {
+                                            recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                                        }
                                     }
                                 }
-                            }
-                            post{
-                                always {
-                                    archiveArtifacts artifacts: 'logs/doctest.log'
-                                    recordIssues(tools: [sphinxBuild(id: 'Doctest', name: 'DocTest', pattern: 'logs/doctest.log')])
-                                }
-                            }
-                        }
-                        stage("MyPy"){
-                            agent {
-                                dockerfile {
-                                    filename 'CI/docker/python/linux/jenkins/Dockerfile'
-                                    label 'linux && docker'
-                                }
-                            }
-                            steps{
-                                timeout(5){
-                                    catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
-                                        sh (script: '''mkdir -p logs
-                                                       mkdir -p reports/mypy_html
-                                                       mypy -p hathi_checksum --html-report reports/mypy_html | tee logs/mypy.log
-                                        '''
-                                        )
+                                stage("DocTest"){
+//                                     agent {
+//                                         dockerfile {
+//                                             filename 'CI/docker/python/linux/jenkins/Dockerfile'
+//                                             label 'linux && docker'
+//                                         }
+//                                     }
+                                    steps{
+                                        timeout(5){
+                                            catchError(buildResult: "SUCCESS", message: 'Doctest found issues', stageResult: "UNSTABLE") {
+                                                sh(
+                                                    label: "Running Doctest",
+                                                    script: """mkdir -p logs
+                                                               python -m sphinx -b doctest docs/source build/docs -d build/docs/.doctrees -w logs/doctest.log -c docs/source
+                                                               """
+                                                )
+                                            }
+                                        }
+                                    }
+                                    post{
+                                        always {
+                                            archiveArtifacts artifacts: 'logs/doctest.log'
+                                            recordIssues(tools: [sphinxBuild(id: 'Doctest', name: 'DocTest', pattern: 'logs/doctest.log')])
+                                        }
                                     }
                                 }
-                            }
-                            post{
-                                always {
-                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
-                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                                stage("MyPy"){
+//                                     agent {
+//                                         dockerfile {
+//                                             filename 'CI/docker/python/linux/jenkins/Dockerfile'
+//                                             label 'linux && docker'
+//                                         }
+//                                     }
+                                    steps{
+                                        timeout(5){
+                                            catchError(buildResult: "SUCCESS", message: 'MyPy found issues', stageResult: "UNSTABLE") {
+                                                sh (script: '''mkdir -p logs
+                                                               mkdir -p reports/mypy_html
+                                                               mypy -p hathi_checksum --html-report reports/mypy_html | tee logs/mypy.log
+                                                '''
+                                                )
+                                            }
+                                        }
+                                    }
+                                    post{
+                                        always {
+                                            recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
+                                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
+                                        }
+                                    }
                                 }
                             }
                         }
